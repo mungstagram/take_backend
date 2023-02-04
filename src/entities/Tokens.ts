@@ -1,8 +1,11 @@
+import { Users } from './Users';
 import {
   Column,
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
+  JoinColumn,
+  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -24,5 +27,15 @@ export class Tokens {
   @DeleteDateColumn({ type: 'timestamp' })
   deletedAt: Date | null;
 
+  // * Foreign Key * /
+
+  @Column({ type: 'int' })
+  UserId: number;
+
   // * Relation * /
+
+  // *  Tokens | M : 1 | Users
+  @ManyToOne(() => Users, (users) => users.Tokens, {})
+  @JoinColumn([{ name: 'UserId', referencedColumnName: 'id' }])
+  User: Users;
 }

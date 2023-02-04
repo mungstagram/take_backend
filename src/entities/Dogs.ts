@@ -3,9 +3,12 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
+  JoinColumn,
+  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Users } from './Users';
 
 @Entity({ name: 'dogs' })
 export class Dogs {
@@ -33,5 +36,15 @@ export class Dogs {
   @DeleteDateColumn({ type: 'timestamp' })
   deletedAt: Date | null;
 
+  // * Foreign Key * /
+
+  @Column({ type: 'int' })
+  UserId: number;
+
   // * Relation * /
+
+  // *  Dogs | M : 1 | Users
+  @ManyToOne(() => Users, (users) => users.Dogs, {})
+  @JoinColumn([{ name: 'UserId', referencedColumnName: 'id' }])
+  User: Users;
 }

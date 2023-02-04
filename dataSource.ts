@@ -5,23 +5,23 @@ import { PostLikes } from './src/entities/PostLikes';
 import { Tokens } from './src/entities/Tokens';
 import { Posts } from './src/entities/Posts';
 import { DataSource } from 'typeorm';
-import dotenv from 'dotenv';
+import * as dotenv from 'dotenv';
 import { Users } from './src/entities/Users';
 
 dotenv.config();
 
 const dataSource = new DataSource({
   type: 'mysql',
-  host: process.env.DB_HOST,
+  host: process.env.MYSQL_DB_HOST,
   port: 3306,
-  username: process.env.DB_USERNAME,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
+  username: process.env.MYSQL_DB_USERNAME,
+  password: process.env.MYSQL_DB_PASSWORD,
+  database: process.env.MYSQL_DB_NAME + '_' + process.env.NODE_ENV,
   entities: [Users, Posts, Tokens, PostLikes, Dogs, Comments, CommentLikes],
   migrations: [__dirname + '/src/migrations/*.ts'],
-  charset: 'utf8mb4',
+  charset: 'utf8mb4_0900_ai_ci',
   synchronize: false,
-  logging: true,
+  logging: process.env.NODE_ENV === 'dev' ? true : false,
 });
 
 export default dataSource;
