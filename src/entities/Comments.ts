@@ -19,7 +19,7 @@ export class Comments {
   id: number;
 
   @Column({ type: 'int' })
-  target: string;
+  target: number | null;
 
   @Column({ type: 'text' })
   comment: string;

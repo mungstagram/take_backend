@@ -24,7 +24,7 @@ const typeOrmModuleOptions = {
       configService.get('MYSQL_DB_NAME') + '_' + configService.get('NODE_ENV'),
     entities: [Users, Posts, Tokens, PostLikes, Dogs, Comments, CommentLikes],
     migrations: [__dirname + '/src/migrations/*.ts'],
-    charset: 'utf8mb4_0900_ai_ci',
+    charset: 'utf8mb4_unicode_ci',
     synchronize: false,
     autoLoadEntities: true,
     keepConnectionAlive: true,
