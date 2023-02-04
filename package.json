@@ -11,20 +11,35 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main",
+    "start:prod": "node dist/src/main.js",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "typeorm": "node --require ts-node/register ./node_modules/typeorm/cli.js",
+    "db:create": "ts-node ./node_modules/typeorm-extension/dist/cli/index.js db:create -d ./dataSource.ts",
+    "db:drop": "ts-node ./node_modules/typeorm-extension/dist/cli/index.js db:drop -d ./dataSource.ts",
+    "db:seed": "ts-node ./node_modules/typeorm-extension/dist/cli/index.js seed -d ./dataSource.ts",
+    "schema:drop": "ts-node ./node_modules/typeorm/cli.js schema:drop -d ./dataSource.ts",
+    "db:sync": "ts-node ./node_modules/typeorm/cli.js schema:sync -d ./dataSource.ts",
+    "db:migrate": "npm run typeorm migration:run -- -d ./dataSource.ts",
+    "db:migrate:revert": "npm run typeorm migration:revert -- -d ./dataSource.ts",
+    "db:create-migration": "npm run typeorm migration:create -- ./src/migrations/",
+    "db:generate-migration": "npm run typeorm migration:generate -- ./src/migrations -d ./dataSource.ts"
   },
   "dependencies": {
     "@nestjs/common": "^9.0.0",
+    "@nestjs/config": "^2.3.0",
     "@nestjs/core": "^9.0.0",
     "@nestjs/platform-express": "^9.0.0",
+    "@nestjs/typeorm": "^9.0.1",
+    "mysql2": "^2.3.3",
     "reflect-metadata": "^0.1.13",
-    "rxjs": "^7.2.0"
+    "rxjs": "^7.2.0",
+    "typeorm": "^0.3.11",
+    "typeorm-extension": "^2.4.2"
   },
   "devDependencies": {
     "@nestjs/cli": "^9.0.0",
