@@ -34,6 +34,9 @@ export class Users {
   @Column({ type: 'text' })
   profile_image: string;
 
+  @Column({ type: 'varchar', length: 6 })
+  provider: string;
+
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 

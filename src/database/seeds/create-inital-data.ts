@@ -24,6 +24,7 @@ export default class Seeding implements Seeder {
           '$2b$10$6XILag0LyymJQOFU3rgvl.KYJ.UcXMuQxBIWQoSzl16vwI2mjOryC',
         nickname: 'Seeder1',
         name: 'Seeder1',
+        provider: 'local',
         profile_image:
           'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTPSldd1PwjMz6j7xbiy2UATRPqGGgTf3oCc1z9zWuvVQ&s',
       },
@@ -34,6 +35,7 @@ export default class Seeding implements Seeder {
           '$2b$10$6XILag0LyymJQOFU3rgvl.KYJ.UcXMuQxBIWQoSzl16vwI2mjOryC',
         nickname: 'Seeder2',
         name: 'Seeder2',
+        provider: 'kakao',
         profile_image:
           'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTPSldd1PwjMz6j7xbiy2UATRPqGGgTf3oCc1z9zWuvVQ&s',
       },
@@ -44,6 +46,7 @@ export default class Seeding implements Seeder {
           '$2b$10$6XILag0LyymJQOFU3rgvl.KYJ.UcXMuQxBIWQoSzl16vwI2mjOryC',
         nickname: 'Seeder3',
         name: 'Seeder3',
+        provider: 'google',
         profile_image:
           'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTPSldd1PwjMz6j7xbiy2UATRPqGGgTf3oCc1z9zWuvVQ&s',
       },
