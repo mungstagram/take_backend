@@ -12,6 +12,7 @@ import { Posts } from './entities/Posts';
 import { Tokens } from './entities/Tokens';
 import { Users } from './entities/Users';
 import { UsersModule } from './users/users.module';
+import { AuthModule } from './auth/auth.module';
 
 const typeOrmModuleOptions = {
   useFactory: async (
@@ -40,6 +41,7 @@ const typeOrmModuleOptions = {
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync(typeOrmModuleOptions),
     UsersModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Users } from '../entities/Users';
-import { Repository, DataSource } from 'typeorm';
+import { Repository } from 'typeorm';
 import bcrypt from 'bcrypt';
 
 @Injectable()
@@ -14,7 +14,6 @@ export class UsersService {
   constructor(
     @InjectRepository(Users)
     private readonly usersRepository: Repository<Users>,
-    private dataSource: DataSource,
   ) {}
 
   async findById(id: number) {
