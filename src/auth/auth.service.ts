@@ -21,6 +21,10 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
+  async tokenFindByUserId(UserId: number) {
+    return await this.tokensRepository.findOne({ where: { UserId } });
+  }
+
   async login(loginRequestDto: LoginRequestDto) {
     const { email, password } = loginRequestDto;
 
@@ -47,6 +51,7 @@ export class AuthService {
 
       return { accessToken, nickname: user.nickname };
     } catch (error) {
+      console.log(error.message);
       throw new BadRequestException(error.messgae);
     }
   }

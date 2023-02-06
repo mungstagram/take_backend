@@ -52,10 +52,6 @@ describe('UsersService', () => {
           provide: getRepositoryToken(Users),
           useClass: MockUserRepository,
         },
-        {
-          provide: DataSource,
-          useClass: class MockDataSource {},
-        },
       ],
     }).compile();
 
