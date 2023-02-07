@@ -1,8 +1,9 @@
-import { Module, Controller } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { LoggerMiddleware } from './common/middleware/logger.middleware';
 import { Comments } from './entities/Comments';
 import { CommentLikes } from './entities/CommentsLikes';
 import { Dogs } from './entities/Dogs';
@@ -14,6 +15,7 @@ import { UsersModule } from './users/users.module';
 import { PostsController } from './posts/controllers/posts.controller';
 import { PostsService } from './posts/services/posts.service';
 import { PostsModule } from './posts/posts.module';
+import { AuthModule } from './auth/auth.module';
 
 const typeOrmModuleOptions = {
   useFactory: async (
@@ -43,8 +45,13 @@ const typeOrmModuleOptions = {
     TypeOrmModule.forRootAsync(typeOrmModuleOptions),
     UsersModule,
     PostsModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(LoggerMiddleware).forRoutes('*');
+  }
+}
