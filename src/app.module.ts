@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, Controller } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
@@ -11,6 +11,9 @@ import { Posts } from './entities/Posts';
 import { Tokens } from './entities/Tokens';
 import { Users } from './entities/Users';
 import { UsersModule } from './users/users.module';
+import { PostsController } from './posts/controllers/posts.controller';
+import { PostsService } from './posts/services/posts.service';
+import { PostsModule } from './posts/posts.module';
 
 const typeOrmModuleOptions = {
   useFactory: async (
@@ -39,6 +42,7 @@ const typeOrmModuleOptions = {
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync(typeOrmModuleOptions),
     UsersModule,
+    PostsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
