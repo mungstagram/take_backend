@@ -1,5 +1,5 @@
 import { AuthService } from './auth.service';
-import { Body, Controller, Post, Res } from '@nestjs/common';
+import { Body, Controller, Post, Req, Res } from '@nestjs/common';
 import { LoginRequestDto } from './dtos/login.request.dto';
 import { Response } from 'express';
 import {
@@ -26,5 +26,23 @@ export class AuthController {
     );
     res.setHeader('Authorization', `Bearer ${accessToken}`);
     res.status(200).json({ nickname });
+  }
+
+  @ApiOperation({
+    summary: 'RefreshToken을 이용하여 AccessToken을 재발급 하는 API',
+  })
+  @ApiUnauthorizedResponse({ description: '토큰 인증 에러' })
+  @Post('refresh')
+  async accessTokenGenerateByRefreshToken(
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const accessToken =
+      await this.authService.accessTokenGenerateByRefreshToken(
+        req.headers['authorization'],
+      );
+    console.log(accessToken);
+    res.setHeader('Authorization', `Bearer ${accessToken}`);
+    res.status(201).send('Created');
   }
 }
