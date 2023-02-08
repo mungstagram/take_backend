@@ -25,6 +25,23 @@ export class AuthService {
     return await this.tokensRepository.findOne({ where: { UserId } });
   }
 
+  async refreshTokenFindByUserId(refreshToken: string) {
+    const findToken = await this.tokensRepository.findOne({
+      where: { token: refreshToken },
+    });
+
+    if (!findToken)
+      throw new UnauthorizedException('해당하는 토큰이 존재하지 않습니다.');
+
+    const user = await this.usersRepository.findOne({
+      where: { id: findToken.UserId },
+    });
+
+    return user.id;
+  }
+
+  async accessTokenGenerateByRefreshToken(accessToken: string) {}
+
   async login(loginRequestDto: LoginRequestDto) {
     const { email, password } = loginRequestDto;
 
@@ -36,13 +53,20 @@ export class AuthService {
     try {
       const accessToken = await this.jwtService.signAsync(
         { sub: user.id },
-        { secret: process.env.JWT_SECRET, expiresIn: '1h' },
+        { secret: process.env.JWT_ACCESS_SECRET, expiresIn: '1h' },
       );
+
+      const existRefreshToken = await this.tokenFindByUserId(user.id);
+
+      if (existRefreshToken)
+        await this.tokensRepository.delete({ UserId: user.id });
 
       const refreshToken = await this.jwtService.signAsync(
         {},
-        { secret: process.env.JWT_SECRET, expiresIn: '7d' },
+        { secret: process.env.JWT_REFRESH_SECRET, expiresIn: '7d' },
       );
+
+      // const hashedRefreshToken = await bcrypt.hash(refreshToken, 12);
 
       await this.tokensRepository.insert({
         UserId: user.id,
