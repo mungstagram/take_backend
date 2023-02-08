@@ -1,3 +1,4 @@
+import { PostLikes } from './../entities/PostLikes';
 import { Posts } from './../entities/Posts';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Module } from '@nestjs/common';
@@ -10,6 +11,7 @@ import { AuthModule } from 'src/auth/auth.module';
   imports: [
     ConfigModule.forRoot(),
     TypeOrmModule.forFeature([Posts]),
+    TypeOrmModule.forFeature([PostLikes]),
     AuthModule,
   ],
   controllers: [PostsController],

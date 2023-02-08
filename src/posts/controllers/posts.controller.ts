@@ -26,4 +26,11 @@ export class PostsController {
   ) {
     return await this.postsService.createPosts(data, 'project', files);
   }
+
+  //게시글 전체 조회 api
+  @ApiOperation({ summary: '게시글 조회 api' })
+  @Get()
+  async getAllPosts(@Body() body: string) {
+    return await this.postsService.getAllPosts(body);
+  }
 }
