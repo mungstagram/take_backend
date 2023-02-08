@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import {
   BadRequestException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Repository } from 'typeorm';
@@ -40,7 +41,45 @@ export class AuthService {
     return user.id;
   }
 
-  async accessTokenGenerateByRefreshToken(accessToken: string) {}
+  async validateRefreshToken(refreshToken: string) {
+    try {
+      await this.jwtService.verifyAsync(refreshToken, {
+        secret: process.env.JWT_REFRESH_SECRET,
+      });
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  async accessTokenGenerateByRefreshToken(accessToken: string) {
+    if (!accessToken)
+      throw new UnauthorizedException('토큰이 존재하지 않습니다.');
+
+    const [authTpye, authToken] = accessToken.split(' ');
+    const payload = this.jwtService.decode(authToken);
+
+    if (!(typeof payload === 'object'))
+      throw new UnauthorizedException('유효하지 않은 토큰입니다.');
+
+    const token = await this.tokenFindByUserId(payload.sub);
+
+    if (!token) throw new UnauthorizedException('잘못된 토큰입니다.');
+
+    const validateRefreshToken = await this.validateRefreshToken(token.token);
+
+    if (!validateRefreshToken)
+      throw new UnauthorizedException('리프레시 토큰이 만료되었습니다.');
+
+    const newAccessToken = await this.jwtService.signAsync(
+      {
+        id: token.UserId,
+      },
+      { expiresIn: '1h', secret: process.env.JWT_ACCESS_SECRET },
+    );
+
+    return newAccessToken;
+  }
 
   async login(loginRequestDto: LoginRequestDto) {
     const { email, password } = loginRequestDto;
