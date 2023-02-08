@@ -1,3 +1,4 @@
+import { UsersModule } from './../users/users.module';
 import { Tokens } from './../entities/Tokens';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Module } from '@nestjs/common';
@@ -6,6 +7,7 @@ import { AuthService } from './auth.service';
 import { Users } from '../entities/Users';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
+import { JwtStrategy } from './jwt/jwt.strategy';
 
 @Module({
   imports: [
@@ -15,8 +17,10 @@ import { JwtModule } from '@nestjs/jwt';
       secret: process.env.JWT_SECRET,
       secretOrPrivateKey: process.env.JWT_SECRET,
     }),
+    UsersModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService],
+  providers: [AuthService, JwtStrategy],
+  exports: [],
 })
 export class AuthModule {}
