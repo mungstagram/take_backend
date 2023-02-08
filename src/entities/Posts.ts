@@ -24,6 +24,9 @@ export class Posts {
   @Column({ type: 'text' })
   content_url: string;
 
+  @Column({ type: 'text' })
+  hashtag: string;
+
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
