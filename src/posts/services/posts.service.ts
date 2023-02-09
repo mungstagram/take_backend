@@ -1,5 +1,6 @@
+import { Comments } from './../../entities/Comments';
 import { PostLikes } from './../../entities/PostLikes';
-import { Users } from './../../entities/Users';
+
 import { ConfigService } from '@nestjs/config';
 import { PostsCreateRequestsDto } from './../dto/postscreate.request.dto';
 import { Injectable } from '@nestjs/common';
@@ -8,7 +9,7 @@ import { Posts } from 'src/entities/Posts';
 import { Repository } from 'typeorm';
 import * as AWS from 'aws-sdk';
 import * as path from 'path';
-import { type } from 'os';
+import { CommentLikes } from 'src/entities/CommentsLikes';
 
 @Injectable()
 export class PostsService {
@@ -17,6 +18,10 @@ export class PostsService {
 
   //의존성 주입
   constructor(
+    @InjectRepository(CommentLikes)
+    private readonly commentLikesRepository: Repository<CommentLikes>,
+    @InjectRepository(Comments)
+    private readonly commentsRepository: Repository<Comments>,
     @InjectRepository(PostLikes)
     private readonly postLikesRepository: Repository<PostLikes>,
     @InjectRepository(Posts)
@@ -36,8 +41,10 @@ export class PostsService {
     data: PostsCreateRequestsDto,
     folder: string,
     files: Array<Express.Multer.File>,
+    payload,
   ) {
-    const { content, hashTags, UserId } = data;
+    const { title, content, category } = data;
+    const UserId = payload.sub;
     let result = '';
 
     //file 별로 구분하여 s3에 저장
@@ -63,13 +70,12 @@ export class PostsService {
 
     result = result.slice(0, -1);
 
-    console.log(hashTags);
-
     //DB에 내용 데이터와 S3에 저장된 이미지 및 영상 데이터 URL 저장
     const post = await this.postsRepository.save({
+      title,
       content,
       content_url: result,
-      hashTags,
+      category,
       UserId,
     });
 
@@ -77,8 +83,8 @@ export class PostsService {
   }
 
   //게시글 전체 조회
-  async getAllPosts(body) {
-    const { userId } = body;
+  async getAllPosts(payload) {
+    const userId = payload.sub;
 
     const now = new Date();
 
@@ -86,15 +92,17 @@ export class PostsService {
       .createQueryBuilder('p')
       .select([
         'p.id',
+        'p.title',
         'p.content',
         'p.content_url',
+        'p.category',
         'u.nickname',
         'pl',
         'p.createdAt',
       ])
       .leftJoin('p.User', 'u')
-      .leftJoin('p.Comments', 'c')
-      .loadRelationCountAndMap('p.Comments', 'p.Comments')
+      .leftJoin('p.CommentsCount', 'c')
+      .loadRelationCountAndMap('p.CommentsCount', 'p.Comments')
       .leftJoin('p.PostLikes', 'pl')
       .loadRelationCountAndMap('p.PostLikes', 'p.PostLikes')
       .getMany();
@@ -130,9 +138,10 @@ export class PostsService {
         return {
           postid: post.id,
           nickname: post.User.nickname,
+          title: post.title,
           content: post.content,
           contentUrl: post.content_url.split(','),
-          hashTags: post.hashtag,
+          category: post.category,
           commentCount: post.Comments,
           likesCount: post.PostLikes,
           createdAt: newTimeGap,
@@ -143,5 +152,95 @@ export class PostsService {
 
     return data;
   }
-  //postId, nickname, content, contentUrl, createdAt, commentCount, , likesCount, isLiked
+
+  //
+  async getOnePost(postId, payload) {
+    const userId = payload.sub;
+
+    function timeGapCalculator(createTime: Date) {
+      const now = new Date();
+      const createdTime = new Date(createTime);
+      const timeGap = now.getTime() - createdTime.getTime();
+      let newTimeGap = '';
+
+      if (Math.floor(timeGap / (1000 * 60 * 60 * 24 * 7 * 4)) !== 0) {
+        newTimeGap = `${createdTime.getMonth()}월 ${createdTime.getDate()}일`;
+      } else if (Math.floor(timeGap / (1000 * 60 * 60 * 24 * 7)) !== 0) {
+        newTimeGap = `${Math.floor(timeGap / (1000 * 60 * 60 * 24 * 7))}주 전`;
+      } else if (Math.floor(timeGap / (1000 * 60 * 60 * 24)) !== 0) {
+        newTimeGap = `${Math.floor(timeGap / (1000 * 60 * 60 * 24))}일 전`;
+      } else if (Math.floor(timeGap / (1000 * 60 * 60)) !== 0) {
+        newTimeGap = `${Math.floor(timeGap / (1000 * 60 * 60))}시간 전`;
+      } else if (Math.floor(timeGap / (1000 * 60)) !== 0) {
+        newTimeGap = `${Math.floor(timeGap / (1000 * 60))}분 전`;
+      } else {
+        newTimeGap = `방금전`;
+      }
+
+      return newTimeGap;
+    }
+
+    const postComments = await this.commentsRepository
+      .createQueryBuilder('c')
+      .select(['c.id', 'c.comment', 'u.nickname', 'c.createdAt'])
+      .leftJoin('c.User', 'u')
+      .leftJoin('c.CommentLikes', 'cl')
+      .loadRelationCountAndMap('c.CommentLikes', 'c.CommentLikes')
+      .where('c.PostId=:postId', { postId: postId })
+      .getMany();
+
+    const allComments = await Promise.all(
+      postComments.map(async (comment) => {
+        const isLikedComment = await this.commentLikesRepository.findBy({
+          CommentId: comment.id,
+        });
+        return {
+          commentId: comment.id,
+          comment: comment.comment,
+          nickname: comment.User.nickname,
+          likesCount: comment.CommentLikes,
+          createdAt: timeGapCalculator(comment.createdAt),
+          isLiked: isLikedComment[0] ? true : false,
+        };
+      }),
+    );
+
+    const isLikedPost = await this.postLikesRepository.findBy({
+      PostId: postId,
+      UserId: userId,
+    });
+
+    const onePost = await this.postsRepository
+      .createQueryBuilder('p')
+      .select([
+        'p.id',
+        'p.title',
+        'p.content',
+        'p.content_url',
+        'p.category',
+        'u.nickname',
+        'p.createdAt',
+        'c',
+      ])
+      .leftJoin('p.User', 'u')
+      .leftJoin('p.Comments', 'c')
+      .loadRelationCountAndMap('p.Comments', 'p.Comments')
+      .leftJoin('p.PostLikes', 'pl')
+      .loadRelationCountAndMap('p.PostLikes', 'p.PostLikes')
+      .where('p.id=:postId', { postId: postId })
+      .getOne();
+
+    return {
+      postId: onePost.id,
+      title: onePost.title,
+      nickname: onePost.User.nickname,
+      content: onePost.content,
+      content_url: onePost.content_url,
+      comment: allComments,
+      commentCount: onePost.Comments,
+      likesCount: onePost.PostLikes,
+      isLikedPost: isLikedPost[0] ? true : false,
+      createdAt: timeGapCalculator(onePost.createdAt),
+    };
+  }
 }
