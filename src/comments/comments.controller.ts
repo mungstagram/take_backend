@@ -1,7 +1,7 @@
 import { CommentDeleteRequestDto } from './dtos/comment.delete.dto';
 import { CommentCreateRequestDto } from './dtos/comment.create.request.dto';
 import { JwtPayload } from './../auth/jwt/jwt.payload.dto';
-import { JwtAuthGard } from '../auth/jwt/jwt.guard';
+import { JwtAuthGuard } from '../auth/jwt/jwt.guard';
 import {
   Body,
   Controller,
@@ -23,7 +23,7 @@ export class CommentsController {
   constructor(private readonly commentsService: CommentsService) {}
 
   @ApiOperation({ summary: '댓글 작성 API' })
-  @UseGuards(JwtAuthGard)
+  @UseGuards(JwtAuthGuard)
   @Post(':postId')
   @HttpCode(201)
   async createComment(
@@ -38,7 +38,7 @@ export class CommentsController {
   }
 
   @ApiOperation({ summary: '댓글 수정 API' })
-  @UseGuards(JwtAuthGard)
+  @UseGuards(JwtAuthGuard)
   @HttpCode(201)
   @Put(':commentId')
   async updateComment(
@@ -53,7 +53,7 @@ export class CommentsController {
   }
 
   @ApiOperation({ summary: '댓글 삭제 API' })
-  @UseGuards(JwtAuthGard)
+  @UseGuards(JwtAuthGuard)
   @Delete(':commentId')
   @HttpCode(204)
   async deleteComment(
