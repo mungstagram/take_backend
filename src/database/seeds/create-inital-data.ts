@@ -59,21 +59,27 @@ export default class Seeding implements Seeder {
       {
         id: 1,
         UserId: 1,
-        content: 'Seeding 1',
+        title: 'Seeding 1_title',
+        content: 'Seeding 1_content',
+        category: 'image',
         content_url:
           'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTPSldd1PwjMz6j7xbiy2UATRPqGGgTf3oCc1z9zWuvVQ&s',
       },
       {
         id: 2,
         UserId: 2,
-        content: 'Seeding 2',
+        title: 'Seeding 2_title',
+        content: 'Seeding 2_content',
+        category: 'image',
         content_url:
           'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTPSldd1PwjMz6j7xbiy2UATRPqGGgTf3oCc1z9zWuvVQ&s',
       },
       {
         id: 3,
         UserId: 3,
-        content: 'Seeding 3',
+        title: 'Seeding 3_title',
+        content: 'Seeding 3_content',
+        category: 'image',
         content_url:
           'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTPSldd1PwjMz6j7xbiy2UATRPqGGgTf3oCc1z9zWuvVQ&s',
       },
@@ -103,6 +109,13 @@ export default class Seeding implements Seeder {
         PostId: 3,
         UserId: 3,
         comment: 'Seeding 3',
+      },
+      {
+        id: 4,
+        target: 1,
+        PostId: 1,
+        UserId: 2,
+        comment: 'Seeding 4',
       },
     ]);
     logger.log('Comments Seeding Complete');

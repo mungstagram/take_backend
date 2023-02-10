@@ -19,13 +19,16 @@ export class Posts {
   id: number;
 
   @Column({ type: 'text' })
+  title: string;
+
+  @Column({ type: 'text' })
   content: string;
 
   @Column({ type: 'text' })
   content_url: string;
 
   @Column({ type: 'text' })
-  hashtag: string;
+  category: string;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
