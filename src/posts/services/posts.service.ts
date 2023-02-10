@@ -1,15 +1,15 @@
 import { Comments } from './../../entities/Comments';
 import { PostLikes } from './../../entities/PostLikes';
+import { CommentLikes } from './../../entities/CommentsLikes';
+import { Posts } from './../../entities/Posts';
 
 import { ConfigService } from '@nestjs/config';
 import { PostsCreateRequestsDto } from './../dto/postscreate.request.dto';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Posts } from 'src/entities/Posts';
 import { Repository } from 'typeorm';
 import * as AWS from 'aws-sdk';
 import * as path from 'path';
-import { CommentLikes } from 'src/entities/CommentsLikes';
 
 @Injectable()
 export class PostsService {
