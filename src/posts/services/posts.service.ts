@@ -2,7 +2,7 @@ import { ConfigService } from '@nestjs/config';
 import { PostsCreateRequestsDto } from './../dto/postscreate.request.dto';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Posts } from 'src/entities/Posts';
+import { Posts } from '../../entities/Posts';
 import { Repository } from 'typeorm';
 import * as AWS from 'aws-sdk';
 import * as path from 'path';
