@@ -12,10 +12,9 @@ import { Posts } from './entities/Posts';
 import { Tokens } from './entities/Tokens';
 import { Users } from './entities/Users';
 import { UsersModule } from './users/users.module';
-import { PostsController } from './posts/controllers/posts.controller';
-import { PostsService } from './posts/services/posts.service';
 import { PostsModule } from './posts/posts.module';
 import { AuthModule } from './auth/auth.module';
+import { CommentsModule } from './comments/comments.module';
 
 const typeOrmModuleOptions = {
   useFactory: async (
@@ -46,6 +45,7 @@ const typeOrmModuleOptions = {
     UsersModule,
     PostsModule,
     AuthModule,
+    CommentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
