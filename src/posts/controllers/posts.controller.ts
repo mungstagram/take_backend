@@ -7,6 +7,7 @@ import {
   Get,
   Param,
   Post,
+  Put,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
@@ -51,5 +52,25 @@ export class PostsController {
     @GetPayload() payload: JwtPayload,
   ) {
     return await this.postsService.getOnePost(postId, payload);
+  }
+
+  //게시글 수정 api
+  @ApiOperation({ summary: '게시글 수정 api' })
+  @UseGuards(JwtAuthGuard)
+  @Put(':postId')
+  @UseInterceptors(FilesInterceptor('images', 5))
+  async updatePost(
+    @Body() data: PostsCreateRequestsDto,
+    @Param('postId') postId: number,
+    @GetPayload() payload: JwtPayload,
+    @UploadedFiles() files: Array<Express.Multer.File>,
+  ) {
+    return await this.postsService.updatePost(
+      postId,
+      data,
+      'project',
+      payload,
+      files,
+    );
   }
 }

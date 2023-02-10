@@ -140,7 +140,7 @@ export class PostsService {
           nickname: post.User.nickname,
           title: post.title,
           content: post.content,
-          contentUrl: post.content_url.split(','),
+          content_url: post.content_url.split(','),
           category: post.category,
           commentCount: post.Comments,
           likesCount: post.PostLikes,
@@ -242,5 +242,84 @@ export class PostsService {
       isLikedPost: isLikedPost[0] ? true : false,
       createdAt: timeGapCalculator(onePost.createdAt),
     };
+  }
+
+  async updatePost(
+    postId: number,
+    data: PostsCreateRequestsDto,
+    folder: string,
+    payload,
+    files: Array<Express.Multer.File>,
+  ) {
+    const { title, content, category } = data;
+
+    const userId = payload.sub;
+    let result = '';
+
+    // //기존에 있던 이미지나 영상 파일 S3에서 삭제
+
+    // const findPost = await this.postsRepository.findBy({ id: postId });
+
+    // const postContent_url = await findPost[0].content_url.split(',');
+
+    // await Promise.all(
+    //   postContent_url.map(async (content_url) => {
+    //     const findKey = content_url.split('/')[4];
+    //     const keyInfo = `project/${findKey}`;
+
+    //     console.log(findKey);
+
+    //     const params = {
+    //       Bucket: process.env.AWS_S3_BUCKET_NAME,
+    //       Key: keyInfo,
+    //     };
+
+    //     const s3 = this.awsS3;
+    //     s3.deleteObject(params, function (err, data) {
+    //       if (err) {
+    //       } else {
+    //         console.log('삭제성공');
+    //       }
+    //     });
+    //   }),
+    // );
+
+    //file 별로 구분하여 s3에 저장
+    files.forEach((file) => {
+      const key = `${folder}/${Date.now()}_${path.basename(
+        file.originalname,
+      )}`.replace(/ /g, '');
+
+      this.awsS3
+        .putObject({
+          Bucket: this.S3_BUCKET_NAME,
+          Key: key,
+          Body: file.buffer,
+          ACL: 'public-read',
+          ContentType: file.mimetype,
+        })
+        .promise();
+      const content_url = `https://${this.S3_BUCKET_NAME}.s3.amazonaws.com/${key}`;
+
+      result += content_url;
+      result += ',';
+    });
+
+    result = result.slice(0, -1);
+
+    const updatedPost = await this.postsRepository
+      .createQueryBuilder()
+      .update(Posts)
+      .set({
+        title: title,
+        content: content,
+        content_url: result,
+        category: category,
+      })
+      .where('id=:id', { id: postId })
+      .andWhere('UserId=:UserId', { UserId: userId })
+      .execute();
+
+    return updatedPost;
   }
 }
