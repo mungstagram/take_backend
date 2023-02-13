@@ -1,7 +1,20 @@
 import { AuthService } from './auth.service';
-import { Body, Controller, Post, Req, Res } from '@nestjs/common';
+import { Request, Response } from 'express';
+import { join } from 'path';
+import {
+  Body,
+  Controller,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+  Get,
+  Redirect,
+  Query,
+  Param,
+  Header,
+} from '@nestjs/common';
 import { LoginRequestDto } from './dtos/login.request.dto';
-import { Response } from 'express';
 import {
   ApiInternalServerErrorResponse,
   ApiOkResponse,
@@ -9,6 +22,11 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
+
+interface PostData {
+  data: string;
+}
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -44,5 +62,25 @@ export class AuthController {
     console.log(accessToken);
     res.setHeader('Authorization', `Bearer ${accessToken}`);
     res.status(201).send('Created');
+  }
+
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  async googleAuth(@Req() req) {}
+
+  @Get('google/redirect')
+  @UseGuards(AuthGuard('google'))
+  googleAuthRedirect(@Req() req) {
+    return this.authService.googleLogin(req.user);
+  }
+
+  @Get('kakao')
+  @UseGuards(AuthGuard('kakao'))
+  async kakaologin(@Req() req) {}
+
+  @Get('kakao/redirect')
+  @UseGuards(AuthGuard('kakao'))
+  kakaologinCallback(@Req() req) {
+    return this.authService.kakaoLogin(req.user);
   }
 }
