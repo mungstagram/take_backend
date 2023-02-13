@@ -269,7 +269,6 @@ export class PostsService {
   async updatePost(
     postId: number,
     data: PostsCreateRequestsDto,
-    folder: string,
     payload: JwtPayload,
     files: Array<Express.Multer.File>,
   ) {
@@ -278,37 +277,35 @@ export class PostsService {
     const userId = payload.sub;
     let result = '';
 
-    // //기존에 있던 이미지나 영상 파일 S3에서 삭제
+    //기존에 있던 이미지나 영상 파일 S3에서 삭제
+    const findPost = await this.postsRepository.findBy({ id: postId });
 
-    // const findPost = await this.postsRepository.findBy({ id: postId });
+    const postContent_url = await findPost[0].content_url.split(',');
 
-    // const postContent_url = await findPost[0].content_url.split(',');
+    await Promise.all(
+      postContent_url.map(async (content_url) => {
+        const findKey = content_url.split('/')[4];
+        const keyInfo = `project/${findKey}`;
 
-    // await Promise.all(
-    //   postContent_url.map(async (content_url) => {
-    //     const findKey = content_url.split('/')[4];
-    //     const keyInfo = `project/${findKey}`;
+        console.log(findKey);
 
-    //     console.log(findKey);
+        const params = {
+          Bucket: process.env.AWS_S3_BUCKET_NAME,
+          Key: keyInfo,
+        };
 
-    //     const params = {
-    //       Bucket: process.env.AWS_S3_BUCKET_NAME,
-    //       Key: keyInfo,
-    //     };
-
-    //     const s3 = this.awsS3;
-    //     s3.deleteObject(params, function (err, data) {
-    //       if (err) {
-    //       } else {
-    //         console.log('삭제성공');
-    //       }
-    //     });
-    //   }),
-    // );
+        const s3 = this.awsS3;
+        s3.deleteObject(params, function (err, data) {
+          if (err) {
+          } else {
+          }
+        });
+      }),
+    );
 
     //file 별로 구분하여 s3에 저장
     files.forEach((file) => {
-      const key = `${folder}/${Date.now()}_${path.basename(
+      const key = `${category}/${Date.now()}_${path.basename(
         file.originalname,
       )}`.replace(/ /g, '');
 
@@ -346,14 +343,61 @@ export class PostsService {
   }
 
   //삭제 기능 service
-  async deletePost(postId: number, payload) {
+  async deletePost(postId: number, payload: JwtPayload) {
     const userId = payload.sub;
 
-    const deleteData = await this.postsRepository.softDelete({
+    //기존에 있던 이미지나 영상 파일 S3에서 삭제
+    const findPost = await this.postsRepository.findBy({ id: postId });
+
+    const postContent_url = await findPost[0].content_url.split(',');
+
+    await Promise.all(
+      postContent_url.map(async (content_url) => {
+        const findKey = content_url.split('/')[4];
+        const keyInfo = `project/${findKey}`;
+
+        console.log(findKey);
+
+        const params = {
+          Bucket: process.env.AWS_S3_BUCKET_NAME,
+          Key: keyInfo,
+        };
+
+        const s3 = this.awsS3;
+        s3.deleteObject(params, function (err, data) {
+          if (err) {
+          } else {
+          }
+        });
+      }),
+    );
+
+    //DB에서 논리적 삭제
+    await this.postsRepository.softDelete({
       id: postId,
       UserId: userId,
     });
 
-    return deleteData;
+    return 'Deleted';
+  }
+
+  //좋아요 기능 service
+  async postLikes(postId: number, payload: JwtPayload) {
+    const userId = payload.sub;
+
+    const existPostLikes = await this.postLikesRepository.findBy({
+      PostId: postId,
+      UserId: userId,
+    });
+
+    if (!existPostLikes[0]) {
+      await this.postLikesRepository.save({ PostId: postId, UserId: userId });
+
+      return 'success makes likes';
+    } else {
+      await this.postLikesRepository.delete({ PostId: postId, UserId: userId });
+
+      return 'success cancel likes';
+    }
   }
 }
