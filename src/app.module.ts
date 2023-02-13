@@ -1,3 +1,4 @@
+import { DogsModule } from './dogs/dogs.module';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
@@ -46,6 +47,7 @@ const typeOrmModuleOptions = {
     PostsModule,
     AuthModule,
     CommentsModule,
+    DogsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

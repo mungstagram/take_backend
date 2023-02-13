@@ -4,6 +4,8 @@ services:
   # project build setting
   api:
     image: f1rstdoc/pupfluencer:latest
+    env_file:
+      - './.env'
     ports:
       - 80:3000
     command: ['sh', '-c', 'npm run start:prod']
