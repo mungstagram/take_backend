@@ -25,3 +25,5 @@ export class DogRequestDto {
 export class DogCreateRequestDto extends OmitType(DogRequestDto, [
   'id',
 ] as const) {}
+
+export class DogUpdateReqeustDto extends DogCreateRequestDto {}

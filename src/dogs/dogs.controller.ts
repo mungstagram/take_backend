@@ -8,7 +8,6 @@ import {
   Controller,
   Delete,
   Get,
-  Param,
   Post,
   Put,
   UseGuards,
@@ -16,7 +15,6 @@ import {
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
-  ApiHeader,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
