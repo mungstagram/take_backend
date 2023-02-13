@@ -23,6 +23,6 @@ import { KakaoStrategy } from './kakao.strategy';
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, GoogleStrategy, KakaoStrategy],
-  exports: [],
+  exports: [AuthModule],
 })
 export class AuthModule {}

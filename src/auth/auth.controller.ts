@@ -16,6 +16,7 @@ import {
 } from '@nestjs/common';
 import { LoginRequestDto } from './dtos/login.request.dto';
 import {
+  ApiBearerAuth,
   ApiInternalServerErrorResponse,
   ApiOkResponse,
   ApiOperation,
@@ -49,6 +50,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'RefreshToken을 이용하여 AccessToken을 재발급 하는 API',
   })
+  @ApiBearerAuth('Authorization')
   @ApiUnauthorizedResponse({ description: '토큰 인증 에러' })
   @Post('refresh')
   async accessTokenGenerateByRefreshToken(
