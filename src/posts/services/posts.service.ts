@@ -1,3 +1,4 @@
+import { JwtPayload } from './../../auth/jwt/jwt.payload.dto';
 import { Comments } from './../../entities/Comments';
 import { PostLikes } from './../../entities/PostLikes';
 import { CommentLikes } from './../../entities/CommentsLikes';
@@ -5,7 +6,7 @@ import { Posts } from './../../entities/Posts';
 
 import { ConfigService } from '@nestjs/config';
 import { PostsCreateRequestsDto } from './../dto/postscreate.request.dto';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as AWS from 'aws-sdk';
@@ -36,87 +37,146 @@ export class PostsService {
     this.S3_BUCKET_NAME = this.configService.get('AWS_S3_BUCKET_NAME');
   }
 
-  //게시글 작성 서비스
+  //게시글 작성
   async createPosts(
     data: PostsCreateRequestsDto,
-    folder: string,
     files: Array<Express.Multer.File>,
-    payload,
+    payload: JwtPayload,
   ) {
     const { title, content, category } = data;
     const UserId = payload.sub;
     let result = '';
 
-    //file 별로 구분하여 s3에 저장
-    files.forEach((file) => {
-      const key = `${folder}/${Date.now()}_${path.basename(
-        file.originalname,
-      )}`.replace(/ /g, '');
+    if (Object.keys(files).length === 0) {
+      throw new BadRequestException('files should not be empty');
+    }
 
-      this.awsS3
-        .putObject({
-          Bucket: this.S3_BUCKET_NAME,
-          Key: key,
-          Body: file.buffer,
-          ACL: 'public-read',
-          ContentType: file.mimetype,
-        })
-        .promise();
-      const content_url = `https://${this.S3_BUCKET_NAME}.s3.amazonaws.com/${key}`;
+    try {
+      //file 별로 구분하여 s3에 저장
+      files.forEach((file) => {
+        const key = `${category}/${Date.now()}_${path.basename(
+          file.originalname,
+        )}`.replace(/ /g, '');
 
-      result += content_url;
-      result += ',';
-    });
+        this.awsS3
+          .putObject({
+            Bucket: this.S3_BUCKET_NAME,
+            Key: key,
+            Body: file.buffer,
+            ACL: 'public-read',
+            ContentType: file.mimetype,
+          })
+          .promise();
+        const content_url = `https://${this.S3_BUCKET_NAME}.s3.amazonaws.com/${key}`;
 
-    result = result.slice(0, -1);
+        if (!content_url) {
+          throw new BadRequestException('file uploads failed');
+        }
 
-    //DB에 내용 데이터와 S3에 저장된 이미지 및 영상 데이터 URL 저장
-    const post = await this.postsRepository.save({
-      title,
-      content,
-      content_url: result,
-      category,
-      UserId,
-    });
+        result += content_url;
+        result += ',';
+      });
 
-    return post;
+      result = result.slice(0, -1);
+
+      //DB에 내용 데이터와 S3에 저장된 이미지 및 영상 데이터 URL 저장
+      await this.postsRepository.save({
+        title,
+        content,
+        content_url: result,
+        category,
+        UserId,
+      });
+
+      return 'Created';
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
   //게시글 전체 조회
-  async getAllPosts(payload) {
-    const userId = payload.sub;
+  async getAllPosts(payload: JwtPayload) {
+    try {
+      const userId = payload.sub;
+      const now = new Date();
 
-    const now = new Date();
+      const allPosts = await this.postsRepository
+        .createQueryBuilder('p')
+        .select([
+          'p.id',
+          'p.title',
+          'p.content',
+          'p.content_url',
+          'p.category',
+          'u.nickname',
+          'pl',
+          'p.createdAt',
+        ])
+        .leftJoin('p.User', 'u')
+        .leftJoin('p.Comments', 'c')
+        .loadRelationCountAndMap('p.Comments', 'p.Comments')
+        .leftJoin('p.PostLikes', 'pl')
+        .loadRelationCountAndMap('p.PostLikes', 'p.PostLikes')
+        .getMany();
 
-    const allPosts = await this.postsRepository
-      .createQueryBuilder('p')
-      .select([
-        'p.id',
-        'p.title',
-        'p.content',
-        'p.content_url',
-        'p.category',
-        'u.nickname',
-        'pl',
-        'p.createdAt',
-      ])
-      .leftJoin('p.User', 'u')
-      .leftJoin('p.CommentsCount', 'c')
-      .loadRelationCountAndMap('p.CommentsCount', 'p.Comments')
-      .leftJoin('p.PostLikes', 'pl')
-      .loadRelationCountAndMap('p.PostLikes', 'p.PostLikes')
-      .getMany();
+      const data = await Promise.all(
+        allPosts.map(async (post) => {
+          const isLikedPost = await this.postLikesRepository.findBy({
+            PostId: post.id,
+            UserId: userId,
+          });
 
-    const data = await Promise.all(
-      allPosts.map(async (post) => {
-        const isLikedPost = await this.postLikesRepository.findBy({
-          PostId: post.id,
-          UserId: userId,
-        });
+          const createdTime = new Date(post.createdAt);
+          const timeGap = now.getTime() - createdTime.getTime();
 
-        const createdTime = new Date(post.createdAt);
+          let newTimeGap = '';
+
+          if (Math.floor(timeGap / (1000 * 60 * 60 * 24 * 7 * 4)) !== 0) {
+            newTimeGap = `${createdTime.getMonth()}월 ${createdTime.getDate()}일`;
+          } else if (Math.floor(timeGap / (1000 * 60 * 60 * 24 * 7)) !== 0) {
+            newTimeGap = `${Math.floor(
+              timeGap / (1000 * 60 * 60 * 24 * 7),
+            )}주 전`;
+          } else if (Math.floor(timeGap / (1000 * 60 * 60 * 24)) !== 0) {
+            newTimeGap = `${Math.floor(timeGap / (1000 * 60 * 60 * 24))}일 전`;
+          } else if (Math.floor(timeGap / (1000 * 60 * 60)) !== 0) {
+            newTimeGap = `${Math.floor(timeGap / (1000 * 60 * 60))}시간 전`;
+          } else if (Math.floor(timeGap / (1000 * 60)) !== 0) {
+            newTimeGap = `${Math.floor(timeGap / (1000 * 60))}분 전`;
+          } else {
+            newTimeGap = `방금전`;
+          }
+
+          return {
+            postid: post.id,
+            nickname: post.User.nickname,
+            title: post.title,
+            content: post.content,
+            content_url: post.content_url.split(','),
+            category: post.category,
+            commentCount: post.Comments,
+            likesCount: post.PostLikes,
+            createdAt: newTimeGap,
+            isLiked: isLikedPost[0] ? true : false,
+          };
+        }),
+      );
+
+      return data;
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  //게시물 상세조회
+  async getOnePost(postId: number, payload: JwtPayload) {
+    try {
+      const userId = payload.sub;
+
+      function timeGapCalculator(createTime: Date) {
+        const now = new Date();
+        const createdTime = new Date(createTime);
         const timeGap = now.getTime() - createdTime.getTime();
-
         let newTimeGap = '';
 
         if (Math.floor(timeGap / (1000 * 60 * 60 * 24 * 7 * 4)) !== 0) {
@@ -135,120 +195,82 @@ export class PostsService {
           newTimeGap = `방금전`;
         }
 
-        return {
-          postid: post.id,
-          nickname: post.User.nickname,
-          title: post.title,
-          content: post.content,
-          content_url: post.content_url.split(','),
-          category: post.category,
-          commentCount: post.Comments,
-          likesCount: post.PostLikes,
-          createdAt: newTimeGap,
-          isLiked: isLikedPost[0] ? true : false,
-        };
-      }),
-    );
-
-    return data;
-  }
-
-  //
-  async getOnePost(postId, payload) {
-    const userId = payload.sub;
-
-    function timeGapCalculator(createTime: Date) {
-      const now = new Date();
-      const createdTime = new Date(createTime);
-      const timeGap = now.getTime() - createdTime.getTime();
-      let newTimeGap = '';
-
-      if (Math.floor(timeGap / (1000 * 60 * 60 * 24 * 7 * 4)) !== 0) {
-        newTimeGap = `${createdTime.getMonth()}월 ${createdTime.getDate()}일`;
-      } else if (Math.floor(timeGap / (1000 * 60 * 60 * 24 * 7)) !== 0) {
-        newTimeGap = `${Math.floor(timeGap / (1000 * 60 * 60 * 24 * 7))}주 전`;
-      } else if (Math.floor(timeGap / (1000 * 60 * 60 * 24)) !== 0) {
-        newTimeGap = `${Math.floor(timeGap / (1000 * 60 * 60 * 24))}일 전`;
-      } else if (Math.floor(timeGap / (1000 * 60 * 60)) !== 0) {
-        newTimeGap = `${Math.floor(timeGap / (1000 * 60 * 60))}시간 전`;
-      } else if (Math.floor(timeGap / (1000 * 60)) !== 0) {
-        newTimeGap = `${Math.floor(timeGap / (1000 * 60))}분 전`;
-      } else {
-        newTimeGap = `방금전`;
+        return newTimeGap;
       }
 
-      return newTimeGap;
+      const postComments = await this.commentsRepository
+        .createQueryBuilder('c')
+        .select(['c.id', 'c.comment', 'u.nickname', 'c.createdAt'])
+        .leftJoin('c.User', 'u')
+        .leftJoin('c.CommentLikes', 'cl')
+        .loadRelationCountAndMap('c.CommentLikes', 'c.CommentLikes')
+        .where('c.PostId=:postId', { postId: postId })
+        .getMany();
+
+      const allComments = await Promise.all(
+        postComments.map(async (comment) => {
+          const isLikedComment = await this.commentLikesRepository.findBy({
+            CommentId: comment.id,
+          });
+          return {
+            commentId: comment.id,
+            comment: comment.comment,
+            nickname: comment.User.nickname,
+            likesCount: comment.CommentLikes,
+            createdAt: timeGapCalculator(comment.createdAt),
+            isLiked: isLikedComment[0] ? true : false,
+          };
+        }),
+      );
+
+      const isLikedPost = await this.postLikesRepository.findBy({
+        PostId: postId,
+        UserId: userId,
+      });
+
+      const onePost = await this.postsRepository
+        .createQueryBuilder('p')
+        .select([
+          'p.id',
+          'p.title',
+          'p.content',
+          'p.content_url',
+          'p.category',
+          'u.nickname',
+          'p.createdAt',
+          'c',
+        ])
+        .leftJoin('p.User', 'u')
+        .leftJoin('p.Comments', 'c')
+        .loadRelationCountAndMap('p.Comments', 'p.Comments')
+        .leftJoin('p.PostLikes', 'pl')
+        .loadRelationCountAndMap('p.PostLikes', 'p.PostLikes')
+        .where('p.id=:postId', { postId: postId })
+        .getOne();
+
+      return {
+        postId: onePost.id,
+        title: onePost.title,
+        nickname: onePost.User.nickname,
+        content: onePost.content,
+        content_url: onePost.content_url,
+        comment: allComments,
+        commentCount: onePost.Comments,
+        likesCount: onePost.PostLikes,
+        isLikedPost: isLikedPost[0] ? true : false,
+        createdAt: timeGapCalculator(onePost.createdAt),
+      };
+    } catch (error) {
+      throw new BadRequestException(error.message);
     }
-
-    const postComments = await this.commentsRepository
-      .createQueryBuilder('c')
-      .select(['c.id', 'c.comment', 'u.nickname', 'c.createdAt'])
-      .leftJoin('c.User', 'u')
-      .leftJoin('c.CommentLikes', 'cl')
-      .loadRelationCountAndMap('c.CommentLikes', 'c.CommentLikes')
-      .where('c.PostId=:postId', { postId: postId })
-      .getMany();
-
-    const allComments = await Promise.all(
-      postComments.map(async (comment) => {
-        const isLikedComment = await this.commentLikesRepository.findBy({
-          CommentId: comment.id,
-        });
-        return {
-          commentId: comment.id,
-          comment: comment.comment,
-          nickname: comment.User.nickname,
-          likesCount: comment.CommentLikes,
-          createdAt: timeGapCalculator(comment.createdAt),
-          isLiked: isLikedComment[0] ? true : false,
-        };
-      }),
-    );
-
-    const isLikedPost = await this.postLikesRepository.findBy({
-      PostId: postId,
-      UserId: userId,
-    });
-
-    const onePost = await this.postsRepository
-      .createQueryBuilder('p')
-      .select([
-        'p.id',
-        'p.title',
-        'p.content',
-        'p.content_url',
-        'p.category',
-        'u.nickname',
-        'p.createdAt',
-        'c',
-      ])
-      .leftJoin('p.User', 'u')
-      .leftJoin('p.Comments', 'c')
-      .loadRelationCountAndMap('p.Comments', 'p.Comments')
-      .leftJoin('p.PostLikes', 'pl')
-      .loadRelationCountAndMap('p.PostLikes', 'p.PostLikes')
-      .where('p.id=:postId', { postId: postId })
-      .getOne();
-
-    return {
-      postId: onePost.id,
-      title: onePost.title,
-      nickname: onePost.User.nickname,
-      content: onePost.content,
-      content_url: onePost.content_url,
-      comment: allComments,
-      commentCount: onePost.Comments,
-      likesCount: onePost.PostLikes,
-      isLikedPost: isLikedPost[0] ? true : false,
-      createdAt: timeGapCalculator(onePost.createdAt),
-    };
   }
 
+  //게시물 수정
   async updatePost(
     postId: number,
     data: PostsCreateRequestsDto,
     folder: string,
-    payload,
+    payload: JwtPayload,
     files: Array<Express.Multer.File>,
   ) {
     const { title, content, category } = data;
@@ -321,5 +343,17 @@ export class PostsService {
       .execute();
 
     return updatedPost;
+  }
+
+  //삭제 기능 service
+  async deletePost(postId: number, payload) {
+    const userId = payload.sub;
+
+    const deleteData = await this.postsRepository.softDelete({
+      id: postId,
+      UserId: userId,
+    });
+
+    return deleteData;
   }
 }
