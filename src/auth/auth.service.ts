@@ -118,4 +118,26 @@ export class AuthService {
       throw new BadRequestException(error.messgae);
     }
   }
+
+  async googleLogin(data) {
+    if (!data) {
+      return 'No user from google';
+    }
+
+    return {
+      message: 'User information from google',
+      user: data,
+    };
+  }
+
+  async kakaoLogin(data) {
+    if (!data) {
+      return 'No user from kakao';
+    }
+
+    return {
+      message: 'User information from kakao',
+      user: data,
+    };
+  }
 }
