@@ -1,4 +1,4 @@
-import { SingupRequestDto } from './dtos/signup.request.dto';
+import { SignupReqeustDto } from './dtos/signup.request.dto';
 import {
   ConflictException,
   Injectable,
@@ -24,7 +24,7 @@ export class UsersService {
     return await this.usersRepository.findOne({ where: { email: email } });
   }
 
-  async signup(data: SingupRequestDto) {
+  async signup(data: SignupReqeustDto) {
     const email = await this.usersRepository.findOne({
       where: { email: data.email },
     });

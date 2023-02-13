@@ -1,4 +1,4 @@
-import { SingupRequestDto } from './dtos/signup.request.dto';
+import { SignupReqeustDto } from './dtos/signup.request.dto';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
@@ -88,7 +88,7 @@ describe('UsersService', () => {
   // * Signup Testing
 
   it('회원가입시 이메일이 중복일경우 Conflict Exception 을 던짐', async () => {
-    const requestDto: SingupRequestDto = {
+    const requestDto: SignupReqeustDto = {
       email: 'mock@email.com',
       password: 'q1w2e3r4',
       name: 'Jset',
@@ -104,7 +104,7 @@ describe('UsersService', () => {
   });
 
   it('회원가입시 닉네임이 중복일경우 Conflict Exception 을 던짐', async () => {
-    const requestDto: SingupRequestDto = {
+    const requestDto: SignupReqeustDto = {
       email: '중복아닌 이메일',
       password: 'q1w2e3r4',
       name: 'Jset',
@@ -120,7 +120,7 @@ describe('UsersService', () => {
   });
 
   it('회원가입시 중복이 없을경우 data가 insert 되고 공백을 반환함', async () => {
-    const requestDto: SingupRequestDto = {
+    const requestDto: SignupReqeustDto = {
       email: '중복아닌 이메일',
       password: 'q1w2e3r4',
       name: 'Jset',
