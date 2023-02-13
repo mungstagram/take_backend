@@ -1,4 +1,4 @@
-import { SingupRequestDto } from './dtos/signup.request.dto';
+import { SignupReqeustDto } from './dtos/signup.request.dto';
 import { UsersService } from './users.service';
 import { Body, Controller, HttpCode, Post } from '@nestjs/common';
 import {
@@ -17,10 +17,12 @@ export class UsersController {
   @ApiConflictResponse({
     description: '닉네임 , 이메일 등이 이미 사용중인 경우.',
   })
-  @ApiCreatedResponse({ description: '회원가입에 성공한 경우' })
+  @ApiCreatedResponse({
+    description: '회원가입에 성공한 경우',
+  })
   @HttpCode(201)
   @Post('signup')
-  async signup(@Body() data: SingupRequestDto) {
+  async signup(@Body() data: SignupReqeustDto) {
     return await this.usersService.signup(data);
   }
 }

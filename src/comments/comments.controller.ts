@@ -14,15 +14,17 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CommentsService } from './comments.service';
-import { ApiOperation } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { GetPayload } from '../common/dacorators/get.payload.decorator';
 import { CommentUpdateRequestDto } from './dtos/comment.update.dto';
 
+@ApiTags('Comments')
 @Controller('comments')
 export class CommentsController {
   constructor(private readonly commentsService: CommentsService) {}
 
   @ApiOperation({ summary: '댓글 작성 API' })
+  @ApiBearerAuth('Authorization')
   @UseGuards(JwtAuthGuard)
   @Post(':postId')
   @HttpCode(201)
@@ -38,6 +40,7 @@ export class CommentsController {
   }
 
   @ApiOperation({ summary: '댓글 수정 API' })
+  @ApiBearerAuth('Authorization')
   @UseGuards(JwtAuthGuard)
   @HttpCode(201)
   @Put(':commentId')
@@ -53,6 +56,7 @@ export class CommentsController {
   }
 
   @ApiOperation({ summary: '댓글 삭제 API' })
+  @ApiBearerAuth('Authorization')
   @UseGuards(JwtAuthGuard)
   @Delete(':commentId')
   @HttpCode(204)

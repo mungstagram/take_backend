@@ -25,6 +25,17 @@ async function bootstrap() {
     .setTitle('Pupfluencer API Document')
     .setDescription('Pupfluencer API 명세서')
     .setVersion('1.0.0')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'JWT 토큰',
+        in: 'header',
+      },
+      'Authorization',
+    )
     .build();
 
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
