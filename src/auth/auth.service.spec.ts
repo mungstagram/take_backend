@@ -1,5 +1,3 @@
-import { UsersService } from '././users/users.service';
-import { UsersModule } from './../users/users.module';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
