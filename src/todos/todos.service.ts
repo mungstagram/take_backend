@@ -31,15 +31,11 @@ export class TodosService {
   }
 
   async updateTodo(todoUpdateReqeustDto: TodoUpdateRequestDto) {
-    const todo = await this.todosRepository.findOne({
-      where: { id: todoUpdateReqeustDto.id },
-    });
-
-    if (!todo) throw new BadRequestException('Todo List 가 존재하지 않습니다');
-
-    await this.todosRepository.update(todoUpdateReqeustDto.id, {
+    const todo = await this.todosRepository.update(todoUpdateReqeustDto.id, {
       content: todoUpdateReqeustDto.content,
     });
+    if (todo.affected === 0)
+      throw new BadRequestException('Todo List 가 존재하지 않습니다');
 
     return;
   }
@@ -63,7 +59,6 @@ export class TodosService {
       throw new BadRequestException(`이미 Todo List의 done이 ${done} 입니다`);
 
     await this.todosRepository.update(todo.id, { done: !todo.done });
-
     return;
   }
 }
