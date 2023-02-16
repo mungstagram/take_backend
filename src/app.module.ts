@@ -16,6 +16,7 @@ import { UsersModule } from './users/users.module';
 import { PostsModule } from './posts/posts.module';
 import { AuthModule } from './auth/auth.module';
 import { CommentsModule } from './comments/comments.module';
+import { TodosModule } from './todos/todos.module';
 
 const typeOrmModuleOptions = {
   useFactory: async (
@@ -48,6 +49,7 @@ const typeOrmModuleOptions = {
     AuthModule,
     CommentsModule,
     DogsModule,
+    TodosModule,
   ],
   controllers: [AppController],
   providers: [AppService],
