@@ -57,8 +57,7 @@ export class TodosService {
   async deleteTodo(todoDeleteReqeustDto: TodoDeleteRequestDto) {
     const todo = await this.todosRepository.delete({ ...todoDeleteReqeustDto });
 
-    if (todo.affected === 0)
-      throw new NotFoundException('존재하지 않은 Todo List 입니다.');
+    if (!todo) throw new BadRequestException('Todo List 가 존재하지 않습니다');
 
     return todo;
   }
