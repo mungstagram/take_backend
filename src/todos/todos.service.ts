@@ -22,18 +22,8 @@ export class TodosService {
   ) {}
 
   async createTodo(todoCreateRequestDto: TodoCreateRequestDto) {
-    await this.todosRepository.insert({ ...todoCreateRequestDto });
-
-    const todo = await this.todosRepository.findOne({
-      where: { ...todoCreateRequestDto },
-    });
-
-    if (!todo)
-      throw new InternalServerErrorException(
-        'Todo List 작성에 실패 하였습니다.',
-      );
-
-    return { id: todo.id };
+    const todo = await this.todosRepository.insert({ ...todoCreateRequestDto });
+    return { id: todo.identifiers[0]['id'] };
   }
 
   async getTodo(userId: number) {
