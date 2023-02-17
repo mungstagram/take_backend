@@ -33,6 +33,9 @@ export class Users {
   nickname: string;
 
   @Column({ type: 'text' })
+  introduce: string;
+
+  @Column({ type: 'text' })
   profile_image: string;
 
   @Column({ type: 'varchar', length: 6 })

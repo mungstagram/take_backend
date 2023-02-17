@@ -16,6 +16,9 @@ import { UsersModule } from './users/users.module';
 import { PostsModule } from './posts/posts.module';
 import { AuthModule } from './auth/auth.module';
 import { CommentsModule } from './comments/comments.module';
+import { ProfileController } from './profile/profile.controller';
+import { ProfileService } from './profile/profile.service';
+import { ProfileModule } from './profile/profile.module';
 import { TodosModule } from './todos/todos.module';
 
 const typeOrmModuleOptions = {
@@ -49,6 +52,7 @@ const typeOrmModuleOptions = {
     AuthModule,
     CommentsModule,
     DogsModule,
+    ProfileModule,
     TodosModule,
   ],
   controllers: [AppController],

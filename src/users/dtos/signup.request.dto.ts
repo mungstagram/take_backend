@@ -24,9 +24,17 @@ export class SignupReqeustDto {
   })
   public nickname: string;
 
+  @ApiProperty({
+    example: '댕댕이를 좋아하는 사람입니다',
+    description: '자기소개',
+  })
+  public introduce: string;
+
   public name: string;
 
   public provider: string;
 
   public profile_image: string;
 }
+
+export class UserDataRequestsDto extends SignupReqeustDto {}
