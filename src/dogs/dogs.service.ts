@@ -10,30 +10,16 @@ export class DogsService {
     @InjectRepository(Dogs) private readonly dogsRepository: Repository<Dogs>,
   ) {}
 
-  async getDog(userId: number) {
-    const dogs = await this.dogsRepository
-      .createQueryBuilder('d')
-      .select([
-        'd.id',
-        'd.UserId',
-        'd.name',
-        'd.birthday',
-        'd.gender',
-        'd.photos',
-      ])
-      .where('UserId = :userId', { userId })
-      .getMany();
-
-    return dogs;
-  }
-
   async createDog(dogCreateRequestDto: DogCreateRequestDto) {
-    const dog = await this.dogsRepository.insert({ ...dogCreateRequestDto });
+    const userId = dogCreateRequestDto.UserId;
+    const dogExist = await this.dogsRepository.findBy({ UserId: userId });
+    console.log(dogExist[0]);
+    const representative = dogExist[0] === undefined ? true : false;
+    const dog = await this.dogsRepository.insert({
+      representative: representative,
+      ...dogCreateRequestDto,
+    });
 
     return dog;
   }
-
-  async updateDog() {}
-
-  async deleteDog() {}
 }

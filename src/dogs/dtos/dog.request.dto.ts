@@ -12,14 +12,26 @@ export class DogRequestDto {
   @ApiProperty({ example: '해피', description: '강아지 이름' })
   public name: string;
 
+  @ApiProperty({ example: '스피츠', description: '견종' })
+  public species: string;
+
+  @ApiProperty({ example: '9.8', description: '몸무게' })
+  public weight: number;
+
   @ApiProperty({ example: '2013-02-08', description: '강아지 생년월일' })
   public birthday: Date;
+
+  @ApiProperty({ example: '2013-06-08', description: '강아지 데리고 온 날' })
+  public bringDate: Date;
 
   @ApiProperty({ example: true, description: 'true 남 false 여' })
   public gender: boolean;
 
-  @ApiProperty({ example: '', description: '프로필 이미지 URL' })
-  public photos: string;
+  @ApiProperty({ example: '', description: '강아지 이미지 URL' })
+  public dog_image: string;
+
+  @ApiProperty({ example: '우리 강아지는 멋져', description: '강아지 소개' })
+  public introduce: string;
 }
 
 export class DogCreateRequestDto extends OmitType(DogRequestDto, [

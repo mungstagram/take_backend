@@ -280,7 +280,7 @@ export class PostsService {
     //기존에 있던 이미지나 영상 파일 S3에서 삭제
     const findPost = await this.postsRepository.findBy({ id: postId });
 
-    const postContent_url = await findPost[0].content_url.split(',');
+    const postContent_url = findPost[0].content_url.split(',');
 
     await Promise.all(
       postContent_url.map(async (content_url) => {

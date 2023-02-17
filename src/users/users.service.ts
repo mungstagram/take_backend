@@ -1,4 +1,9 @@
-import { SignupReqeustDto } from './dtos/signup.request.dto';
+import { Dogs } from './../entities/Dogs';
+import { JwtPayload } from './../auth/jwt/jwt.payload.dto';
+import {
+  SignupReqeustDto,
+  UserDataRequestsDto,
+} from './dtos/signup.request.dto';
 import {
   ConflictException,
   Injectable,
@@ -8,12 +13,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Users } from '../entities/Users';
 import { Repository } from 'typeorm';
 import bcrypt from 'bcrypt';
+import { GitModule } from '@faker-js/faker';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(Users)
     private readonly usersRepository: Repository<Users>,
+    @InjectRepository(Dogs)
+    private readonly dogsRepository: Repository<Dogs>,
   ) {}
 
   async findById(id: number) {
@@ -49,5 +57,41 @@ export class UsersService {
     });
 
     return 'Created';
+  }
+
+  async getUserData(payload: JwtPayload) {
+    const userId = payload.sub;
+    const userData = await this.usersRepository.findOne({
+      where: { id: userId },
+    });
+
+    const userDogsData = await this.dogsRepository.findBy({
+      UserId: userId,
+    });
+
+    const dogsData = userDogsData.map((dog) => {
+      const result = {
+        dogName: dog.name,
+        dogBirthday: dog.birthday,
+        dogGender: dog.gender,
+      };
+
+      return result;
+    });
+
+    const data = {
+      userId: userData.id,
+      nickname: userData.nickname,
+      introduce: userData.introduce,
+      profile_image: userData.profile_image,
+      dogs: dogsData,
+    };
+
+    return data;
+  }
+
+  async updateUserData(payload: JwtPayload, data: UserDataRequestsDto) {
+    const userId = payload.sub;
+    const { nickname, introduce, profile_image } = data;
   }
 }
