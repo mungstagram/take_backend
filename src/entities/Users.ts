@@ -13,6 +13,7 @@ import { Dogs } from './Dogs';
 import { Tokens } from './Tokens';
 import { PostLikes } from './PostLikes';
 import { CommentLikes } from './CommentsLikes';
+import { Todos } from './Todos';
 
 @Entity({ name: 'users' })
 export class Users {
@@ -74,4 +75,8 @@ export class Users {
   // *  Users | 1 : M | CommentsLikes
   @OneToMany(() => CommentLikes, (commentLikes) => commentLikes.User)
   CommentLikes: CommentLikes[];
+
+  // *  Users | 1 : M | CommentsLikes
+  @OneToMany(() => Todos, (todos) => todos.User)
+  Todos: Todos[];
 }

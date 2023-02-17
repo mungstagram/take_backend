@@ -19,6 +19,7 @@ import { CommentsModule } from './comments/comments.module';
 import { ProfileController } from './profile/profile.controller';
 import { ProfileService } from './profile/profile.service';
 import { ProfileModule } from './profile/profile.module';
+import { TodosModule } from './todos/todos.module';
 
 const typeOrmModuleOptions = {
   useFactory: async (
@@ -52,6 +53,7 @@ const typeOrmModuleOptions = {
     CommentsModule,
     DogsModule,
     ProfileModule,
+    TodosModule,
   ],
   controllers: [AppController],
   providers: [AppService],
