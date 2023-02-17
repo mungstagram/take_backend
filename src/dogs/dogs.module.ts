@@ -1,4 +1,3 @@
-import { Users } from './../entities/Users';
 import { AuthModule } from './../auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { Dogs } from './../entities/Dogs';

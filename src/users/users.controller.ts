@@ -1,23 +1,7 @@
-import { JwtPayload } from './../auth/jwt/jwt.payload.dto';
-import { GetPayload } from './../common/dacorators/get.payload.decorator';
-import { JwtAuthGuard } from './../auth/jwt/jwt.guard';
-import {
-  SignupReqeustDto,
-  UserDataRequestsDto,
-} from './dtos/signup.request.dto';
+import { SignupReqeustDto } from './dtos/signup.request.dto';
 import { UsersService } from './users.service';
+import { Body, Controller, HttpCode, Post } from '@nestjs/common';
 import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  Param,
-  Post,
-  Put,
-  UseGuards,
-} from '@nestjs/common';
-import {
-  ApiBearerAuth,
   ApiConflictResponse,
   ApiCreatedResponse,
   ApiOperation,
@@ -40,32 +24,5 @@ export class UsersController {
   @Post('signup')
   async signup(@Body() data: SignupReqeustDto) {
     return await this.usersService.signup(data);
-  }
-
-  @ApiOperation({ summary: '회원정보 조회 API' })
-  @ApiCreatedResponse({
-    description: '회원정보 조회에 성공한 경우',
-  })
-  @ApiBearerAuth('Authorization')
-  @UseGuards(JwtAuthGuard)
-  @HttpCode(200)
-  @Get()
-  async getUserData(@GetPayload() payload: JwtPayload) {
-    return await this.usersService.getUserData(payload);
-  }
-
-  @ApiOperation({ summary: '회원정보 수정 API' })
-  @ApiCreatedResponse({
-    description: '회원정보 수정에 성공한 경우',
-  })
-  @ApiBearerAuth('Authorization')
-  @UseGuards(JwtAuthGuard)
-  @HttpCode(201)
-  @Put()
-  async updateUserData(
-    @Body() data: UserDataRequestsDto,
-    @GetPayload() payload: JwtPayload,
-  ) {
-    return await this.usersService.updateUserData(payload, data);
   }
 }
