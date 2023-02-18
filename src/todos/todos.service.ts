@@ -6,7 +6,6 @@ import {
 } from './dtos/todo.request.dto';
 import {
   Injectable,
-  InternalServerErrorException,
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
@@ -43,7 +42,8 @@ export class TodosService {
   async deleteTodo(todoDeleteReqeustDto: TodoDeleteRequestDto) {
     const todo = await this.todosRepository.delete({ ...todoDeleteReqeustDto });
 
-    if (!todo) throw new BadRequestException('Todo List 가 존재하지 않습니다');
+    if (todo.affected === 0)
+      throw new BadRequestException('Todo List 가 존재하지 않습니다');
 
     return todo;
   }
