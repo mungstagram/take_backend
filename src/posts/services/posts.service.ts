@@ -54,7 +54,7 @@ export class PostsService {
 
     try {
       //file 별로 구분하여 s3에 저장
-      const dataUpload = files.forEach(async (file) => {
+      files.forEach(async (file) => {
         const key = `${category}/${Date.now()}_${path.basename(
           file.originalname,
         )}`.replace(/ /g, '');
@@ -64,7 +64,7 @@ export class PostsService {
         result += ',';
         result = result.slice(0, -1);
 
-        const upload = await this.awsS3
+        await this.awsS3
           .putObject({
             Bucket: this.S3_BUCKET_NAME,
             Key: key,

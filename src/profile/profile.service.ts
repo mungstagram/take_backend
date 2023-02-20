@@ -173,7 +173,7 @@ export class ProfileService {
     const profile_image = `https://${this.S3_BUCKET_NAME}.s3.amazonaws.com/${key}`;
 
     //유저 정보 업데이트
-    const updateUserData = await this.usersRepository
+    await this.usersRepository
       .createQueryBuilder()
       .update(Users)
       .set({

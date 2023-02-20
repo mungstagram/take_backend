@@ -20,12 +20,12 @@ import {
   ApiBody,
   ApiConsumes,
   ApiOperation,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
 import { PostsCreateRequestsDto } from '../dto/postscreate.request.dto';
 import { FilesInterceptor } from '@nestjs/platform-express/multer';
 import { JwtAuthGuard } from 'src/auth/jwt/jwt.guard';
-import { query } from 'express';
 
 @ApiTags('Posts')
 @Controller('posts')
@@ -76,23 +76,12 @@ export class PostsController {
     return await this.postsService.createPosts(data, files, payload);
   }
 
-  //게시글 전체 조회 category와 정렬 기준으로 전송
-  // @ApiOperation({ summary: '게시물 조회 api' })
-  // @ApiBearerAuth('Authorization')
-  // @UseGuards(JwtAuthGuard)
-  // @Get(':category/:array')
-  // @HttpCode(200)
-  // async getUserAllPosts(
-  //   @Param('category') category: string,
-  //   @Param('array') array: string,
-  //   @GetPayload() payload: JwtPayload,
-  // ) {
-  //   return await this.postsService.getAllPosts(payload, category, array);
-  // }
-
   //게시글 조회 user detail
   @ApiOperation({ summary: '게시물 조회 api' })
   @ApiBearerAuth('Authorization')
+  @ApiQuery({ name: 'category', type: 'string', required: true })
+  @ApiQuery({ name: 'order', type: 'string', required: true })
+  @ApiQuery({ name: 'nickname', type: 'string', required: false })
   @UseGuards(JwtAuthGuard)
   @Get()
   @HttpCode(200)
