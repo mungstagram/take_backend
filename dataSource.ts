@@ -12,7 +12,7 @@ const dataSource = new DataSource({
   database: process.env.MYSQL_DB_NAME + '_' + process.env.NODE_ENV,
   entities: [__dirname + '/src/entities/*.ts'],
   migrations: [__dirname + '/src/migrations/*.ts'],
-  charset: 'utf8mb4_unicode_ci',
+  charset: 'utf8mb4_bin',
   synchronize: false,
   logging: process.env.NODE_ENV === 'dev' ? true : false,
 });

@@ -11,6 +11,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as AWS from 'aws-sdk';
 import * as path from 'path';
+import { timeGap } from 'src/helper/timegap.helper';
 
 @Injectable()
 export class PostsService {
@@ -53,12 +54,17 @@ export class PostsService {
 
     try {
       //file 별로 구분하여 s3에 저장
-      files.forEach((file) => {
+      const dataUpload = files.forEach(async (file) => {
         const key = `${category}/${Date.now()}_${path.basename(
           file.originalname,
         )}`.replace(/ /g, '');
 
-        this.awsS3
+        const content_url = `https://${this.S3_BUCKET_NAME}.s3.amazonaws.com/${key}`;
+        result += content_url;
+        result += ',';
+        result = result.slice(0, -1);
+
+        const upload = await this.awsS3
           .putObject({
             Bucket: this.S3_BUCKET_NAME,
             Key: key,
@@ -67,17 +73,11 @@ export class PostsService {
             ContentType: file.mimetype,
           })
           .promise();
-        const content_url = `https://${this.S3_BUCKET_NAME}.s3.amazonaws.com/${key}`;
 
-        if (!content_url) {
+        if (content_url.length === 0) {
           throw new BadRequestException('file uploads failed');
         }
-
-        result += content_url;
-        result += ',';
       });
-
-      result = result.slice(0, -1);
 
       //DB에 내용 데이터와 S3에 저장된 이미지 및 영상 데이터 URL 저장
       await this.postsRepository.save({
@@ -95,10 +95,30 @@ export class PostsService {
   }
 
   //게시글 전체 조회
-  async getAllPosts(payload: JwtPayload) {
+  async getAllPosts(
+    payload: JwtPayload,
+    query: { category: string; order: string; nickname?: string },
+  ) {
     try {
       const userId = payload.sub;
-      const now = new Date();
+      const { category, order, nickname } = query;
+      const arrayWay =
+        order === 'recent'
+          ? 'p.createdAt'
+          : order === 'likescount'
+          ? 'likescount'
+          : false;
+
+      if (!arrayWay) {
+        throw new BadRequestException('잘못된 접근입니다.');
+      }
+
+      const nickExist = nickname
+        ? {
+            condition: 'u.nickname= :nickname',
+            conditionDetail: { nickname: nickname },
+          }
+        : { condition: 'p.deletedAt is null' };
 
       const allPosts = await this.postsRepository
         .createQueryBuilder('p')
@@ -117,6 +137,9 @@ export class PostsService {
         .loadRelationCountAndMap('p.Comments', 'p.Comments')
         .leftJoin('p.PostLikes', 'pl')
         .loadRelationCountAndMap('p.PostLikes', 'p.PostLikes')
+        .where('p.category = :category', { category: category })
+        .andWhere(nickExist.condition, nickExist.conditionDetail)
+        .orderBy('p.createdAt', 'DESC')
         .getMany();
 
       const data = await Promise.all(
@@ -126,26 +149,7 @@ export class PostsService {
             UserId: userId,
           });
 
-          const createdTime = new Date(post.createdAt);
-          const timeGap = now.getTime() - createdTime.getTime();
-
-          let newTimeGap = '';
-
-          if (Math.floor(timeGap / (1000 * 60 * 60 * 24 * 7 * 4)) !== 0) {
-            newTimeGap = `${createdTime.getMonth()}월 ${createdTime.getDate()}일`;
-          } else if (Math.floor(timeGap / (1000 * 60 * 60 * 24 * 7)) !== 0) {
-            newTimeGap = `${Math.floor(
-              timeGap / (1000 * 60 * 60 * 24 * 7),
-            )}주 전`;
-          } else if (Math.floor(timeGap / (1000 * 60 * 60 * 24)) !== 0) {
-            newTimeGap = `${Math.floor(timeGap / (1000 * 60 * 60 * 24))}일 전`;
-          } else if (Math.floor(timeGap / (1000 * 60 * 60)) !== 0) {
-            newTimeGap = `${Math.floor(timeGap / (1000 * 60 * 60))}시간 전`;
-          } else if (Math.floor(timeGap / (1000 * 60)) !== 0) {
-            newTimeGap = `${Math.floor(timeGap / (1000 * 60))}분 전`;
-          } else {
-            newTimeGap = `방금전`;
-          }
+          const newTimeGap = timeGap(post.createdAt);
 
           return {
             postid: post.id,
@@ -162,6 +166,17 @@ export class PostsService {
         }),
       );
 
+      if (order === 'likescount') {
+        data.sort((a, b) => {
+          if (
+            typeof a.likesCount === 'number' &&
+            typeof b.likesCount === 'number'
+          ) {
+            return b.likesCount - a.likesCount;
+          }
+        });
+      }
+
       return data;
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -173,61 +188,6 @@ export class PostsService {
     try {
       const userId = payload.sub;
 
-      function timeGapCalculator(createTime: Date) {
-        const now = new Date();
-        const createdTime = new Date(createTime);
-        const timeGap = now.getTime() - createdTime.getTime();
-        let newTimeGap = '';
-
-        if (Math.floor(timeGap / (1000 * 60 * 60 * 24 * 7 * 4)) !== 0) {
-          newTimeGap = `${createdTime.getMonth()}월 ${createdTime.getDate()}일`;
-        } else if (Math.floor(timeGap / (1000 * 60 * 60 * 24 * 7)) !== 0) {
-          newTimeGap = `${Math.floor(
-            timeGap / (1000 * 60 * 60 * 24 * 7),
-          )}주 전`;
-        } else if (Math.floor(timeGap / (1000 * 60 * 60 * 24)) !== 0) {
-          newTimeGap = `${Math.floor(timeGap / (1000 * 60 * 60 * 24))}일 전`;
-        } else if (Math.floor(timeGap / (1000 * 60 * 60)) !== 0) {
-          newTimeGap = `${Math.floor(timeGap / (1000 * 60 * 60))}시간 전`;
-        } else if (Math.floor(timeGap / (1000 * 60)) !== 0) {
-          newTimeGap = `${Math.floor(timeGap / (1000 * 60))}분 전`;
-        } else {
-          newTimeGap = `방금전`;
-        }
-
-        return newTimeGap;
-      }
-
-      const postComments = await this.commentsRepository
-        .createQueryBuilder('c')
-        .select(['c.id', 'c.comment', 'u.nickname', 'c.createdAt'])
-        .leftJoin('c.User', 'u')
-        .leftJoin('c.CommentLikes', 'cl')
-        .loadRelationCountAndMap('c.CommentLikes', 'c.CommentLikes')
-        .where('c.PostId=:postId', { postId: postId })
-        .getMany();
-
-      const allComments = await Promise.all(
-        postComments.map(async (comment) => {
-          const isLikedComment = await this.commentLikesRepository.findBy({
-            CommentId: comment.id,
-          });
-          return {
-            commentId: comment.id,
-            comment: comment.comment,
-            nickname: comment.User.nickname,
-            likesCount: comment.CommentLikes,
-            createdAt: timeGapCalculator(comment.createdAt),
-            isLiked: isLikedComment[0] ? true : false,
-          };
-        }),
-      );
-
-      const isLikedPost = await this.postLikesRepository.findBy({
-        PostId: postId,
-        UserId: userId,
-      });
-
       const onePost = await this.postsRepository
         .createQueryBuilder('p')
         .select([
@@ -238,27 +198,50 @@ export class PostsService {
           'p.category',
           'u.nickname',
           'p.createdAt',
-          'c',
+          'pl',
         ])
         .leftJoin('p.User', 'u')
-        .leftJoin('p.Comments', 'c')
-        .loadRelationCountAndMap('p.Comments', 'p.Comments')
+        .leftJoinAndSelect('p.Comments', 'c')
         .leftJoin('p.PostLikes', 'pl')
         .loadRelationCountAndMap('p.PostLikes', 'p.PostLikes')
-        .where('p.id=:postId', { postId: postId })
+        .where('c.PostId=:postId', { postId: postId })
         .getOne();
 
+      const newTimeGap = timeGap(onePost.createdAt);
+
+      const isLikedPost = await this.postLikesRepository.findBy({
+        PostId: postId,
+        UserId: userId,
+      });
+
+      const sortedComments = onePost.Comments.sort((a, b) => {
+        if (
+          typeof a.createdAt.getTime() === 'number' &&
+          typeof b.createdAt.getTime() === 'number'
+        ) {
+          return b.createdAt.getTime() - a.createdAt.getTime();
+        }
+      }).map((comment) => {
+        return {
+          id: comment.id,
+          comment: comment.comment,
+          userId: comment.UserId,
+          createdAt: timeGap(comment.createdAt),
+        };
+      });
+
       return {
-        postId: onePost.id,
-        title: onePost.title,
+        postid: onePost.id,
         nickname: onePost.User.nickname,
+        title: onePost.title,
         content: onePost.content,
-        content_url: onePost.content_url,
-        comment: allComments,
-        commentCount: onePost.Comments,
+        content_url: onePost.content_url.split(','),
+        category: onePost.category,
+        comments: sortedComments,
         likesCount: onePost.PostLikes,
-        isLikedPost: isLikedPost[0] ? true : false,
-        createdAt: timeGapCalculator(onePost.createdAt),
+        createdAt: newTimeGap,
+        isLiked: isLikedPost[0] ? true : false,
+        commentsCount: onePost.Comments.length,
       };
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -286,8 +269,6 @@ export class PostsService {
       postContent_url.map(async (content_url) => {
         const findKey = content_url.split('/')[4];
         const keyInfo = `project/${findKey}`;
-
-        console.log(findKey);
 
         const params = {
           Bucket: process.env.AWS_S3_BUCKET_NAME,
