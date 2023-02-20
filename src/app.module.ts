@@ -16,6 +16,7 @@ import { UsersModule } from './users/users.module';
 import { PostsModule } from './posts/posts.module';
 import { AuthModule } from './auth/auth.module';
 import { CommentsModule } from './comments/comments.module';
+import { ProfileModule } from './profile/profile.module';
 import { TodosModule } from './todos/todos.module';
 
 const typeOrmModuleOptions = {
@@ -31,7 +32,8 @@ const typeOrmModuleOptions = {
       configService.get('MYSQL_DB_NAME') + '_' + configService.get('NODE_ENV'),
     entities: [Users, Posts, Tokens, PostLikes, Dogs, Comments, CommentLikes],
     migrations: [__dirname + '/src/migrations/*.ts'],
-    charset: 'utf8mb4_unicode_ci',
+    // charset: 'utf8mb4_unicode_ci',
+    charset: 'utf8mb4_bin',
     synchronize: false,
     autoLoadEntities: true,
     keepConnectionAlive: true,
@@ -49,6 +51,7 @@ const typeOrmModuleOptions = {
     AuthModule,
     CommentsModule,
     DogsModule,
+    ProfileModule,
     TodosModule,
   ],
   controllers: [AppController],

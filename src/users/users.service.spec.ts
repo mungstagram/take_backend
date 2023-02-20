@@ -1,11 +1,9 @@
 import { SignupReqeustDto } from './dtos/signup.request.dto';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
 import { Users } from '../entities/Users';
 import { UsersService } from './users.service';
 import { ConflictException } from '@nestjs/common';
-import { request } from 'http';
 
 // * Mocking
 class MockUserRepository {

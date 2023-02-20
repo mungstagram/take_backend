@@ -92,7 +92,7 @@ export class AuthService {
     try {
       const accessToken = await this.jwtService.signAsync(
         { sub: user.id },
-        { secret: process.env.JWT_ACCESS_SECRET, expiresIn: '1h' },
+        { secret: process.env.JWT_ACCESS_SECRET, expiresIn: '1d' },
       );
 
       const existRefreshToken = await this.tokenFindByUserId(user.id);

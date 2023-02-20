@@ -1,7 +1,7 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, PickType } from '@nestjs/swagger';
 import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 
-export class SignupReqeustDto {
+export class UserReqeustDto {
   @ApiProperty({
     example: 'test@test.com',
     description: '이메일',
@@ -31,4 +31,16 @@ export class SignupReqeustDto {
   public profile_image: string;
 }
 
-export class UserDataRequestsDto extends SignupReqeustDto {}
+export class UserCheckRequestDto {
+  @ApiProperty({
+    example: 'test@test.com',
+    description: '이메일',
+  })
+  public email: string;
+
+  @ApiProperty({
+    example: 'f1rstweb',
+    description: '닉네임',
+  })
+  public nickname: string;
+}

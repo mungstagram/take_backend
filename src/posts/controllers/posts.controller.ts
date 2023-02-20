@@ -10,6 +10,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
@@ -19,6 +20,7 @@ import {
   ApiBody,
   ApiConsumes,
   ApiOperation,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
 import { PostsCreateRequestsDto } from '../dto/postscreate.request.dto';
@@ -41,10 +43,23 @@ export class PostsController {
     schema: {
       type: 'object',
       properties: {
-        title: { type: 'string' },
-        content: { type: 'string' },
-        category: { type: 'string' },
+        title: {
+          description: '제목',
+          example: '게시글 제목입니다',
+          type: 'string',
+        },
+        content: {
+          description: '내용',
+          example: '게시글 내용입니다',
+          type: 'string',
+        },
+        category: {
+          description: '카테고리: image or video',
+          example: 'image or video',
+          type: 'string',
+        },
         files: {
+          description: '파일 업로드',
           type: 'string',
           format: 'binary',
         },
@@ -61,14 +76,20 @@ export class PostsController {
     return await this.postsService.createPosts(data, files, payload);
   }
 
-  //게시글 전체 조회 api
+  //게시글 조회 user detail
   @ApiOperation({ summary: '게시물 조회 api' })
   @ApiBearerAuth('Authorization')
+  @ApiQuery({ name: 'category', type: 'string', required: true })
+  @ApiQuery({ name: 'order', type: 'string', required: true })
+  @ApiQuery({ name: 'nickname', type: 'string', required: false })
   @UseGuards(JwtAuthGuard)
   @Get()
   @HttpCode(200)
-  async getAllPosts(@GetPayload() payload: JwtPayload) {
-    return await this.postsService.getAllPosts(payload);
+  async getAllPosts(
+    @Query() query: { category: string; order: string; nickname?: string },
+    @GetPayload() payload: JwtPayload,
+  ) {
+    return await this.postsService.getAllPosts(payload, query);
   }
 
   //게시글 상세조회 api

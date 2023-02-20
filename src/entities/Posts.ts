@@ -57,5 +57,5 @@ export class Posts {
 
   // *  Posts | 1 : M | PostLikes
   @OneToMany(() => PostLikes, (postLikes) => postLikes.Post)
-  PostLikes: Comments[];
+  PostLikes: PostLikes[];
 }

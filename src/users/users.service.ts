@@ -1,5 +1,10 @@
+import { UserCheckRequestDto } from './dtos/user.reqeust.dto';
 import { SignupReqeustDto } from './dtos/signup.request.dto';
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Users } from '../entities/Users';
 import { Repository } from 'typeorm';
@@ -45,5 +50,43 @@ export class UsersService {
     });
 
     return 'Created';
+  }
+
+  async check(userCheckRequestDto: UserCheckRequestDto) {
+    if (Object.keys(userCheckRequestDto).length !== 1)
+      throw new BadRequestException('올바르지 않은 데이터 형식입니다.');
+
+    const nicknameOrEmail = userCheckRequestDto.nickname
+      ? userCheckRequestDto.nickname
+      : userCheckRequestDto.email
+      ? userCheckRequestDto.email
+      : false;
+
+    if (!nicknameOrEmail)
+      throw new BadRequestException('올바르지 않은 데이터 형식입니다.');
+
+    const nicknameRegexp = /^[a-zA-Z0-9]{3,}$/g;
+    const emailRegexp =
+      /^([\w\.\_\-])*[a-zA-Z0-9]+([\w\.\_\-])*([a-zA-Z0-9])+([\w\.\_\-])+@([a-zA-Z0-9]+\.)+[a-zA-Z0-9]{2,8}$/i;
+
+    const isCorrect = nicknameRegexp.test(nicknameOrEmail)
+      ? { nickname: nicknameOrEmail }
+      : emailRegexp.test(nicknameOrEmail)
+      ? { email: nicknameOrEmail }
+      : false;
+
+    if (!isCorrect)
+      throw new BadRequestException('올바르지 않은 데이터 형식입니다.');
+
+    const user = await this.usersRepository.findOne({
+      where: { ...isCorrect },
+    });
+
+    if (user)
+      throw new BadRequestException(
+        `이미 존재하는 ${Object.keys(isCorrect)[0]} 입니다.`,
+      );
+
+    return true;
   }
 }
