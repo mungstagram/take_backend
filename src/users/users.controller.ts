@@ -1,3 +1,4 @@
+import { UserCheckRequestDto } from './dtos/user.reqeust.dto';
 import { SignupReqeustDto } from './dtos/signup.request.dto';
 import { UsersService } from './users.service';
 import { Body, Controller, HttpCode, Post } from '@nestjs/common';
@@ -24,5 +25,12 @@ export class UsersController {
   @Post('signup')
   async signup(@Body() data: SignupReqeustDto) {
     return await this.usersService.signup(data);
+  }
+
+  @ApiOperation({ summary: '닉네임, 이메일 유효성, 중복 검사 API' })
+  @HttpCode(200)
+  @Post('signup/check')
+  async check(@Body() userCheckRequestDto: UserCheckRequestDto) {
+    return await this.usersService.check(userCheckRequestDto);
   }
 }
