@@ -22,7 +22,9 @@ export class TodosService {
 
   async createTodo(todoCreateRequestDto: TodoCreateRequestDto) {
     const todo = await this.todosRepository.insert({ ...todoCreateRequestDto });
-    return { id: todo.identifiers[0]['id'] };
+    return await this.todosRepository.findOne({
+      where: { id: todo.identifiers[0]['id'] },
+    });
   }
 
   async getTodo(userId: number) {
@@ -32,11 +34,16 @@ export class TodosService {
   async updateTodo(todoUpdateReqeustDto: TodoUpdateRequestDto) {
     const todo = await this.todosRepository.update(todoUpdateReqeustDto.id, {
       content: todoUpdateReqeustDto.content,
+      done: todoUpdateReqeustDto.done,
     });
     if (todo.affected === 0)
       throw new BadRequestException('Todo List 가 존재하지 않습니다');
 
-    return;
+    console.log(todo);
+
+    return await this.todosRepository.findOne({
+      where: { id: todoUpdateReqeustDto.id },
+    });
   }
 
   async deleteTodo(todoDeleteReqeustDto: TodoDeleteRequestDto) {
