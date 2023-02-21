@@ -37,7 +37,7 @@ export class Dogs {
   representative: boolean;
 
   @Column({ type: 'text' })
-  dog_image: string;
+  fileId: string;
 
   @Column({ type: 'text' })
   introduce: string;

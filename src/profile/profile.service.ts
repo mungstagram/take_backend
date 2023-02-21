@@ -54,7 +54,7 @@ export class ProfileService {
 
       return {
         name: dog.name,
-        dog_image: dog.dog_image,
+        // dog_image: dog.dog_image,
         daysWithin: daysWithin,
         age: age,
         species: dog.species,
@@ -76,7 +76,7 @@ export class ProfileService {
       {
         user: {
           nickname: userData[0].nickname,
-          profile_image: userData[0].profile_image,
+          // profile_image: userData[0].profile_image,
         },
       },
       { dogs: allDogsData },
@@ -116,7 +116,7 @@ export class ProfileService {
     const data = {
       user: {
         nickname: userData[0].nickname,
-        profile_image: userData[0].profile_image,
+        // profile_image: userData[0].profile_image,
         introduce: userData[0].introduce,
         dogsCount: allDogs.length,
       },
@@ -179,28 +179,28 @@ export class ProfileService {
       .set({
         nickname: data.userNickname,
         introduce: data.introduce,
-        profile_image: profile_image,
+        // profile_image: profile_image,
       })
       .where('id=:userId', { userId: userId })
       .execute();
 
     //S3에서 이전 이미지 삭제
-    const findKey = userData[0].profile_image.split('/')[4];
-    const keyInfo = `user/${findKey}`;
+    // const findKey = userData[0].profile_image.split('/')[4];
+    // const keyInfo = `user/${findKey}`;
 
-    const params = {
-      Bucket: process.env.AWS_S3_BUCKET_NAME,
-      Key: keyInfo,
-    };
+    // const params = {
+    //   Bucket: process.env.AWS_S3_BUCKET_NAME,
+    //   Key: keyInfo,
+    // };
 
-    const s3 = this.awsS3;
-    s3.deleteObject(params, function (err, data) {
-      if (err) {
-      } else {
-      }
-    });
+    // const s3 = this.awsS3;
+    // s3.deleteObject(params, function (err, data) {
+    //   if (err) {
+    //   } else {
+    //   }
+    // });
 
-    return 'Updated';
+    // return 'Updated';
   }
 
   async updateDogProfile(

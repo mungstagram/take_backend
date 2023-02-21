@@ -1,3 +1,6 @@
+import { UploadFiles, UploadFilesSchema } from './../models/UploadFiles';
+import { MongooseModule } from '@nestjs/mongoose';
+import { AWSService } from './../helper/fileupload.helper';
 import { PostLikes } from './../entities/PostLikes';
 import { Posts } from './../entities/Posts';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -14,9 +17,12 @@ import { CommentLikes } from 'src/entities/CommentsLikes';
     ConfigModule.forRoot(),
     TypeOrmModule.forFeature([Posts, PostLikes, Comments, CommentLikes]),
     AuthModule,
+    MongooseModule.forFeature([
+      { name: UploadFiles.name, schema: UploadFilesSchema },
+    ]),
   ],
   controllers: [PostsController],
-  providers: [PostsService],
+  providers: [PostsService, AWSService],
   exports: [PostsService],
 })
 export class PostsModule {}
