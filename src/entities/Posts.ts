@@ -25,7 +25,7 @@ export class Posts {
   content: string;
 
   @Column({ type: 'text' })
-  content_url: string;
+  fileId: string;
 
   @Column({ type: 'text' })
   category: string;

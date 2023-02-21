@@ -1,3 +1,4 @@
+import { AWSService } from './../../helper/fileupload.helper';
 import { JwtPayload } from './../../auth/jwt/jwt.payload.dto';
 import { Comments } from './../../entities/Comments';
 import { PostLikes } from './../../entities/PostLikes';
@@ -29,6 +30,7 @@ export class PostsService {
     @InjectRepository(Posts)
     private readonly postsRepository: Repository<Posts>,
     private readonly configService: ConfigService,
+    private readonly awsService: AWSService,
   ) {
     this.awsS3 = new AWS.S3({
       accessKeyId: this.configService.get('AWS_S3_ACCESS_KEY'),
@@ -46,7 +48,6 @@ export class PostsService {
   ) {
     const { title, content, category } = data;
     const UserId = payload.sub;
-    let result = '';
 
     if (Object.keys(files).length === 0) {
       throw new BadRequestException('files should not be empty');
@@ -54,36 +55,13 @@ export class PostsService {
 
     try {
       //file 별로 구분하여 s3에 저장
-      files.forEach(async (file) => {
-        const key = `${category}/${Date.now()}_${path.basename(
-          file.originalname,
-        )}`.replace(/ /g, '');
-
-        const content_url = `https://${this.S3_BUCKET_NAME}.s3.amazonaws.com/${key}`;
-        result += content_url;
-        result += ',';
-        result = result.slice(0, -1);
-
-        await this.awsS3
-          .putObject({
-            Bucket: this.S3_BUCKET_NAME,
-            Key: key,
-            Body: file.buffer,
-            ACL: 'public-read',
-            ContentType: file.mimetype,
-          })
-          .promise();
-
-        if (content_url.length === 0) {
-          throw new BadRequestException('file uploads failed');
-        }
-      });
+      const imageUrl = await this.awsService.fileUploads(files, category);
 
       //DB에 내용 데이터와 S3에 저장된 이미지 및 영상 데이터 URL 저장
       await this.postsRepository.save({
         title,
         content,
-        content_url: result,
+        fileId: JSON.stringify(imageUrl),
         category,
         UserId,
       });
@@ -126,7 +104,7 @@ export class PostsService {
           'p.id',
           'p.title',
           'p.content',
-          'p.content_url',
+          'p.fileId',
           'p.category',
           'u.nickname',
           'pl',
@@ -156,7 +134,7 @@ export class PostsService {
             nickname: post.User.nickname,
             title: post.title,
             content: post.content,
-            content_url: post.content_url.split(','),
+            content_url: post.fileId,
             category: post.category,
             commentCount: post.Comments,
             likesCount: post.PostLikes,
@@ -194,7 +172,7 @@ export class PostsService {
           'p.id',
           'p.title',
           'p.content',
-          'p.content_url',
+          'p.fileId',
           'p.category',
           'u.nickname',
           'p.createdAt',
@@ -235,7 +213,7 @@ export class PostsService {
         nickname: onePost.User.nickname,
         title: onePost.title,
         content: onePost.content,
-        content_url: onePost.content_url.split(','),
+        content_url: onePost.fileId,
         category: onePost.category,
         comments: sortedComments,
         likesCount: onePost.PostLikes,
@@ -261,28 +239,28 @@ export class PostsService {
     let result = '';
 
     //기존에 있던 이미지나 영상 파일 S3에서 삭제
-    const findPost = await this.postsRepository.findBy({ id: postId });
+    // const findPost = await this.postsRepository.findBy({ id: postId });
 
-    const postContent_url = findPost[0].content_url.split(',');
+    // const postContent_url = findPost[0].content_url.split(',');
 
-    await Promise.all(
-      postContent_url.map(async (content_url) => {
-        const findKey = content_url.split('/')[4];
-        const keyInfo = `project/${findKey}`;
+    // await Promise.all(
+    //   postContent_url.map(async (content_url) => {
+    //     const findKey = content_url.split('/')[4];
+    //     const keyInfo = `project/${findKey}`;
 
-        const params = {
-          Bucket: process.env.AWS_S3_BUCKET_NAME,
-          Key: keyInfo,
-        };
+    //     const params = {
+    //       Bucket: process.env.AWS_S3_BUCKET_NAME,
+    //       Key: keyInfo,
+    //     };
 
-        const s3 = this.awsS3;
-        s3.deleteObject(params, function (err, data) {
-          if (err) {
-          } else {
-          }
-        });
-      }),
-    );
+    //     const s3 = this.awsS3;
+    //     s3.deleteObject(params, function (err, data) {
+    //       if (err) {
+    //       } else {
+    //       }
+    //     });
+    //   }),
+    // );
 
     //file 별로 구분하여 s3에 저장
     files.forEach((file) => {
@@ -313,7 +291,7 @@ export class PostsService {
       .set({
         title: title,
         content: content,
-        content_url: result,
+        // content_url: result,
         category: category,
       })
       .where('id=:id', { id: postId })
@@ -328,30 +306,30 @@ export class PostsService {
     const userId = payload.sub;
 
     //기존에 있던 이미지나 영상 파일 S3에서 삭제
-    const findPost = await this.postsRepository.findBy({ id: postId });
+    // const findPost = await this.postsRepository.findBy({ id: postId });
 
-    const postContent_url = await findPost[0].content_url.split(',');
+    // const postContent_url = await findPost[0].content_url.split(',');
 
-    await Promise.all(
-      postContent_url.map(async (content_url) => {
-        const findKey = content_url.split('/')[4];
-        const keyInfo = `project/${findKey}`;
+    // await Promise.all(
+    //   postContent_url.map(async (content_url) => {
+    //     const findKey = content_url.split('/')[4];
+    //     const keyInfo = `project/${findKey}`;
 
-        console.log(findKey);
+    //     console.log(findKey);
 
-        const params = {
-          Bucket: process.env.AWS_S3_BUCKET_NAME,
-          Key: keyInfo,
-        };
+    //     const params = {
+    //       Bucket: process.env.AWS_S3_BUCKET_NAME,
+    //       Key: keyInfo,
+    //     };
 
-        const s3 = this.awsS3;
-        s3.deleteObject(params, function (err, data) {
-          if (err) {
-          } else {
-          }
-        });
-      }),
-    );
+    //     const s3 = this.awsS3;
+    //     s3.deleteObject(params, function (err, data) {
+    //       if (err) {
+    //       } else {
+    //       }
+    //     });
+    //   }),
+    // );
 
     //DB에서 논리적 삭제
     await this.postsRepository.softDelete({

@@ -46,7 +46,7 @@ export class UsersService {
       nickname: data.nickname,
       password: hashedPassword,
       provider: data.provider,
-      profile_image: data.profile_image,
+      // profile_image: data.profile_image,
     });
 
     return 'Created';

@@ -36,7 +36,7 @@ export class Users {
   introduce: string;
 
   @Column({ type: 'text' })
-  profile_image: string;
+  fileId: string;
 
   @Column({ type: 'varchar', length: 6 })
   provider: string;

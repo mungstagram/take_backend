@@ -1,3 +1,4 @@
+import { UploadFiles, UploadFilesSchema } from './models/UploadFiles';
 import { DogsModule } from './dogs/dogs.module';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -17,7 +18,11 @@ import { PostsModule } from './posts/posts.module';
 import { AuthModule } from './auth/auth.module';
 import { CommentsModule } from './comments/comments.module';
 import { TodosModule } from './todos/todos.module';
-import { MongooseModule, MongooseModuleOptions } from '@nestjs/mongoose';
+import {
+  MongooseModule,
+  MongooseModuleOptions,
+  Schema,
+} from '@nestjs/mongoose';
 import { EventsModule } from './events/events.module';
 import { DmsModule } from './dms/dms.module';
 import mongoose from 'mongoose';
@@ -67,6 +72,12 @@ const mongodbOptions = {
     TodosModule,
     EventsModule,
     DmsModule,
+    MongooseModule.forFeature([
+      {
+        name: UploadFiles.name,
+        schema: UploadFilesSchema,
+      },
+    ]),
   ],
   controllers: [AppController],
   providers: [AppService],
