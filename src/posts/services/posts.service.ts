@@ -13,7 +13,6 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as AWS from 'aws-sdk';
-import * as path from 'path';
 import { timeGap } from 'src/helper/timegap.helper';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -84,7 +83,7 @@ export class PostsService {
       return {
         title,
         content,
-        contentUrl: contentUrl,
+        contentUrl,
         category,
         UserId,
       };
@@ -124,7 +123,7 @@ export class PostsService {
         'p.id',
         'p.title',
         'p.content',
-        'p.fileId',
+        'p.fileUrl',
         'p.category',
         'u.nickname',
         'p.createdAt',
@@ -141,43 +140,23 @@ export class PostsService {
       .orderBy('p.createdAt', 'DESC')
       .getMany();
 
-    // allPosts.forEach((v) => {
-    //   if (v.PostLikes.length !== 0) {
-    //     const a = v.PostLikes.map((v) => {
-    //       if (v.UserId === 5) {
-    //         return v;
-    //       }
-    //     });
-    //   }
-    // });
-
     const data = await Promise.all(
       allPosts.map(async (post) => {
-        // const isLikedPost = await this.postLikesRepository.findBy({
-        //   PostId: post.id,
-        //   UserId: userId,
-        // });
-
         const isLiked = post.PostLikes.filter((v) => {
           if (v.UserId === userId) return v;
         });
-        console.log(isLiked);
 
         const newTimeGap = timeGap(post.createdAt);
-
-        // const contentUrl = this.fileUrlService.getUrl(JSON.parse(post.fileId));
-
-        // console.log(contentUrl);
 
         return {
           postid: post.id,
           nickname: post.User.nickname,
           title: post.title,
           content: post.content,
-          contentUrl: 'contentUrl',
+          contentUrl: JSON.parse(post.fileUrl),
           category: post.category,
           commentCount: post.Comments,
-          likesCount: post['undefined'],
+          likesCount: post['undefined'], // 이거 언디파인드로 나오는거 어케 살리지
           createdAt: newTimeGap,
           isLiked: isLiked.length !== 0 ? true : false,
         };
@@ -209,7 +188,7 @@ export class PostsService {
           'p.id',
           'p.title',
           'p.content',
-          'p.fileId',
+          'p.fileUrl',
           'p.category',
           'u.nickname',
           'p.createdAt',
@@ -250,7 +229,7 @@ export class PostsService {
         nickname: onePost.User.nickname,
         title: onePost.title,
         content: onePost.content,
-        fileId: JSON.stringify(onePost.fileId),
+        contentUrl: JSON.parse(onePost.fileUrl),
         category: onePost.category,
         comments: sortedComments,
         likesCount: onePost.PostLikes,
@@ -273,100 +252,37 @@ export class PostsService {
     const { title, content, category } = data;
 
     const userId = payload.sub;
-    let result = '';
 
-    //기존에 있던 이미지나 영상 파일 S3에서 삭제
-    // const findPost = await this.postsRepository.findBy({ id: postId });
+    const images = await this.awsService.fileUploads(files, category);
 
-    // const postContent_url = findPost[0].content_url.split(',');
-
-    // await Promise.all(
-    //   postContent_url.map(async (content_url) => {
-    //     const findKey = content_url.split('/')[4];
-    //     const keyInfo = `project/${findKey}`;
-
-    //     const params = {
-    //       Bucket: process.env.AWS_S3_BUCKET_NAME,
-    //       Key: keyInfo,
-    //     };
-
-    //     const s3 = this.awsS3;
-    //     s3.deleteObject(params, function (err, data) {
-    //       if (err) {
-    //       } else {
-    //       }
-    //     });
-    //   }),
-    // );
-
-    //file 별로 구분하여 s3에 저장
-    files.forEach((file) => {
-      const key = `${category}/${Date.now()}_${path.basename(
-        file.originalname,
-      )}`.replace(/ /g, '');
-
-      this.awsS3
-        .putObject({
-          Bucket: this.S3_BUCKET_NAME,
-          Key: key,
-          Body: file.buffer,
-          ACL: 'public-read',
-          ContentType: file.mimetype,
-        })
-        .promise();
-      const content_url = `https://${this.S3_BUCKET_NAME}.s3.amazonaws.com/${key}`;
-
-      result += content_url;
-      result += ',';
+    const contentUrl = images.map((v) => {
+      return v.contentUrl;
     });
 
-    result = result.slice(0, -1);
-
-    const updatedPost = await this.postsRepository
+    await this.postsRepository
       .createQueryBuilder()
       .update(Posts)
       .set({
         title: title,
         content: content,
-        // content_url: result,
+        fileUrl: JSON.stringify(contentUrl),
         category: category,
       })
       .where('id=:id', { id: postId })
       .andWhere('UserId=:UserId', { UserId: userId })
       .execute();
 
-    return updatedPost;
+    return {
+      title,
+      content,
+      contentUrl,
+      category,
+    };
   }
 
   //삭제 기능 service
   async deletePost(postId: number, payload: JwtPayload) {
     const userId = payload.sub;
-
-    //기존에 있던 이미지나 영상 파일 S3에서 삭제
-    // const findPost = await this.postsRepository.findBy({ id: postId });
-
-    // const postContent_url = await findPost[0].content_url.split(',');
-
-    // await Promise.all(
-    //   postContent_url.map(async (content_url) => {
-    //     const findKey = content_url.split('/')[4];
-    //     const keyInfo = `project/${findKey}`;
-
-    //     console.log(findKey);
-
-    //     const params = {
-    //       Bucket: process.env.AWS_S3_BUCKET_NAME,
-    //       Key: keyInfo,
-    //     };
-
-    //     const s3 = this.awsS3;
-    //     s3.deleteObject(params, function (err, data) {
-    //       if (err) {
-    //       } else {
-    //       }
-    //     });
-    //   }),
-    // );
 
     //DB에서 논리적 삭제
     await this.postsRepository.softDelete({
@@ -397,3 +313,26 @@ export class PostsService {
     }
   }
 }
+//기존에 있던 이미지나 영상 파일 S3에서 삭제
+// const findPost = await this.postsRepository.findBy({ id: postId });
+
+// const postContent_url = findPost[0].content_url.split(',');
+
+// await Promise.all(
+//   postContent_url.map(async (content_url) => {
+//     const findKey = content_url.split('/')[4];
+//     const keyInfo = `project/${findKey}`;
+
+//     const params = {
+//       Bucket: process.env.AWS_S3_BUCKET_NAME,
+//       Key: keyInfo,
+//     };
+
+//     const s3 = this.awsS3;
+//     s3.deleteObject(params, function (err, data) {
+//       if (err) {
+//       } else {
+//       }
+//     });
+//   }),
+// );
