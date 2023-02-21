@@ -1,3 +1,4 @@
+import { UploadFiles } from './../../models/UploadFiles';
 import { AWSService } from './../../helper/fileupload.helper';
 import { JwtPayload } from './../../auth/jwt/jwt.payload.dto';
 import { Comments } from './../../entities/Comments';
@@ -13,6 +14,8 @@ import { Repository } from 'typeorm';
 import * as AWS from 'aws-sdk';
 import * as path from 'path';
 import { timeGap } from 'src/helper/timegap.helper';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 
 @Injectable()
 export class PostsService {
@@ -29,6 +32,8 @@ export class PostsService {
     private readonly postLikesRepository: Repository<PostLikes>,
     @InjectRepository(Posts)
     private readonly postsRepository: Repository<Posts>,
+    @InjectModel(UploadFiles.name)
+    private readonly uploadFilesModel: Model<UploadFiles>,
     private readonly configService: ConfigService,
     private readonly awsService: AWSService,
   ) {
@@ -55,18 +60,32 @@ export class PostsService {
 
     try {
       //file 별로 구분하여 s3에 저장
-      const imageUrl = await this.awsService.fileUploads(files, category);
+      const images = await this.awsService.fileUploads(files, category);
+
+      const fileId = images.map((v) => {
+        return v.id;
+      });
+
+      const contentUrl = images.map((v) => {
+        return v.contentUrl;
+      });
 
       //DB에 내용 데이터와 S3에 저장된 이미지 및 영상 데이터 URL 저장
       await this.postsRepository.save({
         title,
         content,
-        fileId: JSON.stringify(imageUrl),
+        fileId: JSON.stringify(fileId),
         category,
         UserId,
       });
 
-      return 'Created';
+      return {
+        title,
+        content,
+        contentUrl: contentUrl,
+        category,
+        UserId,
+      };
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -134,7 +153,7 @@ export class PostsService {
             nickname: post.User.nickname,
             title: post.title,
             content: post.content,
-            content_url: post.fileId,
+            fileId: JSON.stringify(post.fileId),
             category: post.category,
             commentCount: post.Comments,
             likesCount: post.PostLikes,
@@ -213,7 +232,7 @@ export class PostsService {
         nickname: onePost.User.nickname,
         title: onePost.title,
         content: onePost.content,
-        content_url: onePost.fileId,
+        fileId: JSON.stringify(onePost.fileId),
         category: onePost.category,
         comments: sortedComments,
         likesCount: onePost.PostLikes,

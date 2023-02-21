@@ -25,6 +25,13 @@ export class AWSService {
         hashSum.update(file.buffer);
         const hex = hashSum.digest('hex');
 
+        const hashCheck = await this.uploadFileModel.findOne({ hash: hex });
+
+        if (hashCheck) {
+          console.log('HashCheck', hashCheck);
+          return hashCheck;
+        }
+
         const key = `${category}/${Date.now()}_${path.basename(
           file.originalname,
         )}`.replace(/ /g, '');
@@ -50,11 +57,12 @@ export class AWSService {
           hash: hex,
         });
 
-        return uploadedFiles.id;
+        return uploadedFiles;
       }),
     );
 
-    console.log(JSON.parse(JSON.stringify(result)));
-    return JSON.stringify(result);
+    return result.map((v) => {
+      return { id: v.id, contentUrl: v.contentUrl, hash: v.hash };
+    });
   }
 }
