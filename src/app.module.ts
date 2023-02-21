@@ -16,10 +16,13 @@ import { UsersModule } from './users/users.module';
 import { PostsModule } from './posts/posts.module';
 import { AuthModule } from './auth/auth.module';
 import { CommentsModule } from './comments/comments.module';
-import { ProfileModule } from './profile/profile.module';
 import { TodosModule } from './todos/todos.module';
+import { MongooseModule, MongooseModuleOptions } from '@nestjs/mongoose';
+import { EventsModule } from './events/events.module';
+import { DmsModule } from './dms/dms.module';
+import mongoose from 'mongoose';
 
-const typeOrmModuleOptions = {
+const mysqlOptions = {
   useFactory: async (
     configService: ConfigService,
   ): Promise<TypeOrmModuleOptions> => ({
@@ -32,7 +35,6 @@ const typeOrmModuleOptions = {
       configService.get('MYSQL_DB_NAME') + '_' + configService.get('NODE_ENV'),
     entities: [Users, Posts, Tokens, PostLikes, Dogs, Comments, CommentLikes],
     migrations: [__dirname + '/src/migrations/*.ts'],
-    // charset: 'utf8mb4_unicode_ci',
     charset: 'utf8mb4_bin',
     synchronize: false,
     autoLoadEntities: true,
@@ -42,23 +44,37 @@ const typeOrmModuleOptions = {
   inject: [ConfigService],
 };
 
+const mongodbOptions = {
+  useFactory: async (
+    configService: ConfigService,
+  ): Promise<MongooseModuleOptions> => ({
+    uri: configService.get('MONGO_DB_URI'),
+    dbName: 'chattings',
+  }),
+  inject: [ConfigService],
+};
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    TypeOrmModule.forRootAsync(typeOrmModuleOptions),
+    TypeOrmModule.forRootAsync(mysqlOptions),
+    MongooseModule.forRootAsync(mongodbOptions),
     UsersModule,
     PostsModule,
     AuthModule,
     CommentsModule,
     DogsModule,
-    ProfileModule,
     TodosModule,
+    EventsModule,
+    DmsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
+    const DEBUG = process.env.NODE_ENV === 'dev' ? true : false;
     consumer.apply(LoggerMiddleware).forRoutes('*');
+    mongoose.set('debug', DEBUG);
   }
 }
