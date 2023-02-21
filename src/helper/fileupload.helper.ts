@@ -28,7 +28,6 @@ export class AWSService {
         const hashCheck = await this.uploadFileModel.findOne({ hash: hex });
 
         if (hashCheck) {
-          console.log('HashCheck', hashCheck);
           return hashCheck;
         }
 

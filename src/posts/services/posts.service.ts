@@ -1,3 +1,4 @@
+import { FileUrlService } from './../../helper/get.file.url.helper';
 import { UploadFiles } from './../../models/UploadFiles';
 import { AWSService } from './../../helper/fileupload.helper';
 import { JwtPayload } from './../../auth/jwt/jwt.payload.dto';
@@ -36,6 +37,7 @@ export class PostsService {
     private readonly uploadFilesModel: Model<UploadFiles>,
     private readonly configService: ConfigService,
     private readonly awsService: AWSService,
+    private readonly fileUrlService: FileUrlService,
   ) {
     this.awsS3 = new AWS.S3({
       accessKeyId: this.configService.get('AWS_S3_ACCESS_KEY'),
@@ -96,88 +98,104 @@ export class PostsService {
     payload: JwtPayload,
     query: { category: string; order: string; nickname?: string },
   ) {
-    try {
-      const userId = payload.sub;
-      const { category, order, nickname } = query;
-      const arrayWay =
-        order === 'recent'
-          ? 'p.createdAt'
-          : order === 'likescount'
-          ? 'likescount'
-          : false;
+    const userId = payload.sub;
+    const { category, order, nickname } = query;
+    const arrayWay =
+      order === 'recent'
+        ? 'p.createdAt'
+        : order === 'likescount'
+        ? 'likescount'
+        : false;
 
-      if (!arrayWay) {
-        throw new BadRequestException('잘못된 접근입니다.');
-      }
-
-      const nickExist = nickname
-        ? {
-            condition: 'u.nickname= :nickname',
-            conditionDetail: { nickname: nickname },
-          }
-        : { condition: 'p.deletedAt is null' };
-
-      const allPosts = await this.postsRepository
-        .createQueryBuilder('p')
-        .select([
-          'p.id',
-          'p.title',
-          'p.content',
-          'p.fileId',
-          'p.category',
-          'u.nickname',
-          'pl',
-          'p.createdAt',
-        ])
-        .leftJoin('p.User', 'u')
-        .leftJoin('p.Comments', 'c')
-        .loadRelationCountAndMap('p.Comments', 'p.Comments')
-        .leftJoin('p.PostLikes', 'pl')
-        .loadRelationCountAndMap('p.PostLikes', 'p.PostLikes')
-        .where('p.category = :category', { category: category })
-        .andWhere(nickExist.condition, nickExist.conditionDetail)
-        .orderBy('p.createdAt', 'DESC')
-        .getMany();
-
-      const data = await Promise.all(
-        allPosts.map(async (post) => {
-          const isLikedPost = await this.postLikesRepository.findBy({
-            PostId: post.id,
-            UserId: userId,
-          });
-
-          const newTimeGap = timeGap(post.createdAt);
-
-          return {
-            postid: post.id,
-            nickname: post.User.nickname,
-            title: post.title,
-            content: post.content,
-            fileId: JSON.stringify(post.fileId),
-            category: post.category,
-            commentCount: post.Comments,
-            likesCount: post.PostLikes,
-            createdAt: newTimeGap,
-            isLiked: isLikedPost[0] ? true : false,
-          };
-        }),
-      );
-
-      if (order === 'likescount') {
-        data.sort((a, b) => {
-          if (
-            typeof a.likesCount === 'number' &&
-            typeof b.likesCount === 'number'
-          ) {
-            return b.likesCount - a.likesCount;
-          }
-        });
-      }
-
-      return data;
-    } catch (error) {
-      throw new BadRequestException(error.message);
+    if (!arrayWay) {
+      throw new BadRequestException('잘못된 접근입니다.');
     }
+
+    const nickExist = nickname
+      ? {
+          condition: 'u.nickname= :nickname',
+          conditionDetail: { nickname: nickname },
+        }
+      : { condition: 'p.deletedAt is null' };
+
+    const allPosts = await this.postsRepository
+      .createQueryBuilder('p')
+      .select([
+        'p.id',
+        'p.title',
+        'p.content',
+        'p.fileId',
+        'p.category',
+        'u.nickname',
+        'p.createdAt',
+        'pl2.UserId',
+      ])
+      .leftJoin('p.User', 'u')
+      .leftJoin('p.Comments', 'c')
+      .leftJoin('p.PostLikes', 'pl')
+      .leftJoin('p.PostLikes', 'pl2')
+      .loadRelationCountAndMap('p.Comments', 'p.Comments')
+      .loadRelationCountAndMap('pl', 'p.PostLikes', 'plCount')
+      .where('p.category = :category', { category: category })
+      .andWhere(nickExist.condition, nickExist.conditionDetail)
+      .orderBy('p.createdAt', 'DESC')
+      .getMany();
+
+    // allPosts.forEach((v) => {
+    //   if (v.PostLikes.length !== 0) {
+    //     const a = v.PostLikes.map((v) => {
+    //       if (v.UserId === 5) {
+    //         return v;
+    //       }
+    //     });
+    //   }
+    // });
+
+    const data = await Promise.all(
+      allPosts.map(async (post) => {
+        // const isLikedPost = await this.postLikesRepository.findBy({
+        //   PostId: post.id,
+        //   UserId: userId,
+        // });
+
+        const isLiked = post.PostLikes.filter((v) => {
+          if (v.UserId === userId) return v;
+        });
+        console.log(isLiked);
+
+        const newTimeGap = timeGap(post.createdAt);
+
+        // const contentUrl = this.fileUrlService.getUrl(JSON.parse(post.fileId));
+
+        // console.log(contentUrl);
+
+        return {
+          postid: post.id,
+          nickname: post.User.nickname,
+          title: post.title,
+          content: post.content,
+          contentUrl: 'contentUrl',
+          category: post.category,
+          commentCount: post.Comments,
+          likesCount: post['undefined'],
+          createdAt: newTimeGap,
+          isLiked: isLiked.length !== 0 ? true : false,
+        };
+      }),
+    );
+
+    if (order === 'likescount') {
+      data.sort((a, b) => {
+        if (
+          typeof a.likesCount === 'number' &&
+          typeof b.likesCount === 'number'
+        ) {
+          return b.likesCount - a.likesCount;
+        }
+      });
+    }
+
+    return data;
   }
 
   //게시물 상세조회
