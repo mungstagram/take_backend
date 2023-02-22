@@ -46,7 +46,7 @@ export class UsersService {
       nickname: data.nickname,
       password: hashedPassword,
       provider: data.provider,
-      // profile_image: data.profile_image,
+      fileUrl: data.profile_image,
     });
 
     return 'Created';
@@ -88,5 +88,26 @@ export class UsersService {
       );
 
     return true;
+  }
+
+  async loadUserData(nickname: string, userId: number) {
+    const userData = await this.usersRepository
+      .createQueryBuilder('u')
+      .select()
+      .loadRelationCountAndMap('u.postsCount', 'u.Posts')
+      .loadRelationCountAndMap('u.dogsCount', 'u.Dogs')
+      .where('u.nickname =:nickname', { nickname: nickname })
+      .getOne();
+
+    console.log(userData);
+
+    return {
+      nickname: userData.nickname,
+      introduce: userData.introduce,
+      contentUrl: JSON.parse(userData.fileUrl)[0],
+      postsCount: userData['postsCount'],
+      dogsCount: userData['dogsCount'],
+      isSameUser: userData.id === userId ? true : false,
+    };
   }
 }

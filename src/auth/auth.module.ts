@@ -1,7 +1,7 @@
 import { UsersModule } from './../users/users.module';
 import { Tokens } from './../entities/Tokens';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { Users } from '../entities/Users';
@@ -19,7 +19,7 @@ import { KakaoStrategy } from './kakao.strategy';
       secret: process.env.JWT_SECRET,
       secretOrPrivateKey: process.env.JWT_SECRET,
     }),
-    UsersModule,
+    forwardRef(() => UsersModule),
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, GoogleStrategy, KakaoStrategy],
