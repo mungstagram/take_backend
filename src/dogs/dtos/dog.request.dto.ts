@@ -27,9 +27,6 @@ export class DogRequestDto {
   @ApiProperty({ example: true, description: 'true 남 false 여' })
   public gender: boolean;
 
-  @ApiProperty({ example: '', description: '강아지 이미지 URL' })
-  public dog_image: string;
-
   @ApiProperty({ example: '우리 강아지는 멋져', description: '강아지 소개' })
   public introduce: string;
 }
