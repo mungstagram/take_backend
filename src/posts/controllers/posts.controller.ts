@@ -19,6 +19,7 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiConsumes,
+  ApiCreatedResponse,
   ApiOperation,
   ApiQuery,
   ApiTags,
@@ -35,6 +36,7 @@ export class PostsController {
 
   //게시글 작성 api
   @ApiOperation({ summary: '게시물 작성 api' })
+  @ApiCreatedResponse({ description: '정상적으로 작성됨' })
   @ApiBearerAuth('Authorization')
   @UseGuards(JwtAuthGuard)
   @ApiConsumes('multipart/form-data')
