@@ -143,8 +143,9 @@ export default class Seeding implements Seeder {
         bringDate: '2013-06-08',
         gender: true,
         representative: true,
-        fileUrl:
+        fileUrl: JSON.stringify([
           'https://www.google.com/url?sa=i&url=https%3A%2F%2Fpixabay.com%2Fko%2Fphotos%2Fsearch%2F%25EC%2595%25A0%25EA%25B2%25AC%2F&psig=AOvVaw2_FcU4LAgQiQCAUgaaqtHb&ust=1675620320391000&source=images&cd=vfe&ved=0CA8QjRxqFwoTCIDBlaG6_PwCFQAAAAAdAAAAABAE',
+        ]),
         introduce: '갱얼쥐1의 자기소개',
       },
       {
@@ -157,8 +158,9 @@ export default class Seeding implements Seeder {
         bringDate: '2019-09-08',
         gender: true,
         representative: false,
-        fileUrl:
+        fileUrl: JSON.stringify([
           'https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.shutterstock.com%2Fko%2Fsearch%2F%25EA%25B0%2595%25EC%2595%2584%25EC%25A7%2580&psig=AOvVaw2_FcU4LAgQiQCAUgaaqtHb&ust=1675620320391000&source=images&cd=vfe&ved=0CA8QjRxqFwoTCIDBlaG6_PwCFQAAAAAdAAAAABAw',
+        ]),
         introduce: '갱얼쥐1-1의 자기소개',
       },
       {
@@ -171,8 +173,9 @@ export default class Seeding implements Seeder {
         bringDate: '2020-08-08',
         gender: true,
         representative: true,
-        fileUrl:
+        fileUrl: JSON.stringify([
           'https://www.google.com/url?sa=i&url=https%3A%2F%2Fkr.freepik.com%2Fphotos%2F%25EA%25B0%2595%25EC%2595%2584%25EC%25A7%2580&psig=AOvVaw2_FcU4LAgQiQCAUgaaqtHb&ust=1675620320391000&source=images&cd=vfe&ved=0CA8QjRxqFwoTCIDBlaG6_PwCFQAAAAAdAAAAABAY',
+        ]),
         introduce: '갱얼쥐2의 자기소개',
       },
       {
@@ -185,8 +188,9 @@ export default class Seeding implements Seeder {
         bringDate: '2021-03-08',
         gender: true,
         representative: true,
-        fileUrl:
+        fileUrl: JSON.stringify([
           'https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.pexels.com%2Fko-kr%2Fsearch%2F%25EA%25B0%2595%25EC%2595%2584%25EC%25A7%2580%2F&psig=AOvVaw2_FcU4LAgQiQCAUgaaqtHb&ust=1675620320391000&source=images&cd=vfe&ved=0CA8QjRxqFwoTCIDBlaG6_PwCFQAAAAAdAAAAABAo',
+        ]),
         introduce: '갱얼쥐3의 자기소개',
       },
     ]);

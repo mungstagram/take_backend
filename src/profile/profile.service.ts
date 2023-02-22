@@ -1,3 +1,4 @@
+import { AWSService } from './../helper/fileupload.helper';
 import { ConfigService } from '@nestjs/config';
 import { Dogs } from './../entities/Dogs';
 import { Users } from './../entities/Users';
@@ -10,7 +11,6 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as AWS from 'aws-sdk';
-import * as path from 'path';
 
 @Injectable()
 export class ProfileService {
@@ -23,6 +23,7 @@ export class ProfileService {
     private readonly configService: ConfigService,
     @InjectRepository(Dogs)
     private readonly dogsRepository: Repository<Dogs>,
+    private readonly awsService: AWSService,
   ) {
     this.awsS3 = new AWS.S3({
       accessKeyId: this.configService.get('AWS_S3_ACCESS_KEY'),
@@ -42,9 +43,12 @@ export class ProfileService {
     const now = new Date();
 
     const allDogsData = allDogs.map((dog) => {
+      //함께한 날짜 구하기
       const daysWithin = Math.floor(
         (now.getTime() - dog.bringDate.getTime()) / (1000 * 60 * 60 * 24),
       );
+
+      //강아지 나이 구하기
       const ageYear = now.getFullYear() - dog.birthday.getFullYear();
       const ageMonth = now.getMonth() - dog.birthday.getMonth();
       const age =
@@ -53,30 +57,33 @@ export class ProfileService {
           : `${ageYear}년 ${ageMonth}개월`;
 
       return {
+        id: dog.id,
         name: dog.name,
-        // dog_image: dog.dog_image,
+        contentUrl: JSON.parse(dog.fileUrl)[0],
         daysWithin: daysWithin,
         age: age,
         species: dog.species,
         weight: dog.weight.toFixed(1),
         gender: dog.gender === true ? '수컷' : '암컷',
         introduce: dog.introduce,
-        representative: dog.representative === true ? 1 : 0,
+        representative: dog.representative,
         birthday: dog.birthday,
       };
     });
 
-    allDogsData.sort(
-      (a, b) =>
-        b.representative - a.representative ||
-        a.birthday.getTime() - b.birthday.getTime(),
+    allDogsData.sort((a, b) =>
+      a.representative === b.representative
+        ? 0
+        : a
+        ? -1
+        : 1 || a.birthday.getTime() - b.birthday.getTime(),
     );
 
     const data = [
       {
         user: {
           nickname: userData[0].nickname,
-          // profile_image: userData[0].profile_image,
+          contentUrl: JSON.parse(userData[0].fileUrl)[0],
         },
       },
       { dogs: allDogsData },
@@ -97,31 +104,37 @@ export class ProfileService {
 
     const allDogsData = allDogs.map((dog) => {
       return {
+        id: dog.id,
         name: dog.name,
+        contentUrl: JSON.parse(dog.fileUrl)[0],
         introduce: dog.introduce,
         species: dog.species,
         weight: dog.weight,
         birthday: dog.birthday,
         bringDate: dog.bringDate,
-        representative: dog.representative === true ? 1 : 0,
+        representative: dog.representative,
       };
     });
 
-    allDogsData.sort(
-      (a, b) =>
-        b.representative - a.representative ||
-        a.birthday.getTime() - b.birthday.getTime(),
+    allDogsData.sort((a, b) =>
+      a.representative === b.representative
+        ? 0
+        : a
+        ? -1
+        : 1 || a.birthday.getTime() - b.birthday.getTime(),
     );
 
-    const data = {
-      user: {
-        nickname: userData[0].nickname,
-        // profile_image: userData[0].profile_image,
-        introduce: userData[0].introduce,
-        dogsCount: allDogs.length,
+    const data = [
+      {
+        user: {
+          nickname: userData[0].nickname,
+          contentUrl: JSON.parse(userData[0].fileUrl)[0],
+          introduce: userData[0].introduce,
+          dogsCount: allDogs.length,
+        },
       },
-      dogs: allDogsData,
-    };
+      { dogs: allDogsData },
+    ];
 
     return data;
   }
@@ -133,7 +146,7 @@ export class ProfileService {
     data,
   ) {
     const userData = await this.usersRepository.findOne({
-      where: { nickname: data.userNickname },
+      where: { nickname: nickname },
     });
 
     if (!userData) {
@@ -152,25 +165,11 @@ export class ProfileService {
 
     //s3에 새로운 프로필 이미지 저장
     const category = 'user';
-    const key = `${category}/${Date.now()}_${path.basename(
-      files[0].originalname,
-    )}`.replace(/ /g, '');
+    const newProfileImage = await this.awsService.fileUploads(files, category);
 
-    try {
-      this.awsS3
-        .putObject({
-          Bucket: this.S3_BUCKET_NAME,
-          Key: key,
-          Body: files[0].buffer,
-          ACL: 'public-read',
-          ContentType: files[0].mimetype,
-        })
-        .promise();
-    } catch (err) {
-      console.log(err);
-    }
-
-    const profile_image = `https://${this.S3_BUCKET_NAME}.s3.amazonaws.com/${key}`;
+    const contentUrl = newProfileImage.map((v) => {
+      return v.contentUrl;
+    });
 
     //유저 정보 업데이트
     await this.usersRepository
@@ -179,28 +178,16 @@ export class ProfileService {
       .set({
         nickname: data.userNickname,
         introduce: data.introduce,
-        // profile_image: profile_image,
+        fileUrl: !files[0] ? userData.fileUrl : JSON.stringify(contentUrl),
       })
       .where('id=:userId', { userId: userId })
       .execute();
 
-    //S3에서 이전 이미지 삭제
-    // const findKey = userData[0].profile_image.split('/')[4];
-    // const keyInfo = `user/${findKey}`;
-
-    // const params = {
-    //   Bucket: process.env.AWS_S3_BUCKET_NAME,
-    //   Key: keyInfo,
-    // };
-
-    // const s3 = this.awsS3;
-    // s3.deleteObject(params, function (err, data) {
-    //   if (err) {
-    //   } else {
-    //   }
-    // });
-
-    // return 'Updated';
+    return {
+      nickname: data.userNickname,
+      introduce: data.introduce,
+      contentUrl: !files[0] ? JSON.parse(userData.fileUrl)[0] : contentUrl[0],
+    };
   }
 
   async updateDogProfile(
@@ -226,28 +213,48 @@ export class ProfileService {
         .set({ representative: false })
         .where('UserId = :userId', { userId: userId })
         .execute();
+
+      this.dogsRepository
+        .createQueryBuilder()
+        .update(Dogs)
+        .set({ representative: true })
+        .where('id = :id', { id: id })
+        .execute();
     }
 
-    if (files[0].buffer) {
-      // files에 버퍼가 있는 경우 s3에 새로운 프로필 이미지 저장
-      const category = 'dog';
-      const key = `${category}/${Date.now()}_${path.basename(
-        files[0].originalname,
-      )}`.replace(/ /g, '');
+    // s3에 새로운 강아지 프로필 이미지 저장
+    const category = 'dog';
+    const newDogImage = await this.awsService.fileUploads(files, category);
 
-      this.awsS3
-        .putObject({
-          Bucket: this.S3_BUCKET_NAME,
-          Key: key,
-          Body: files[0].buffer,
-          ACL: 'public-read',
-          ContentType: files[0].mimetype,
-        })
-        .promise();
+    const contentUrl = newDogImage.map((v) => {
+      return v.contentUrl;
+    });
 
-      const profile_image = `https://${this.S3_BUCKET_NAME}.s3.amazonaws.com/${key}`;
-    }
+    //강아지 정보 업데이트
+    this.dogsRepository
+      .createQueryBuilder()
+      .update(Dogs)
+      .set({
+        name: data.name,
+        introduce: data.introduce,
+        species: data.species,
+        weight: data.weight,
+        birthday: data.birthday,
+        bringDate: data.bringDate,
+        fileUrl: !files[0] ? dogData.fileUrl : JSON.stringify(contentUrl),
+      })
+      .where('id= :id', { id: id })
+      .execute();
 
-    return dogData;
+    return {
+      name: data.name,
+      introduce: data.introduce,
+      representative: data.representative,
+      species: data.species,
+      weight: data.weight,
+      birthday: data.birthday,
+      bringDate: data.bringDate,
+      contentUrl: !files[0] ? JSON.parse(dogData.fileUrl)[0] : contentUrl[0],
+    };
   }
 }
