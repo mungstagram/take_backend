@@ -1,13 +1,9 @@
-import { FileUrlService } from './../../helper/get.file.url.helper';
+import { Users } from 'src/entities/Users';
 import { UploadFiles } from './../../models/UploadFiles';
 import { AWSService } from './../../helper/fileupload.helper';
 import { JwtPayload } from './../../auth/jwt/jwt.payload.dto';
-import { Comments } from './../../entities/Comments';
 import { PostLikes } from './../../entities/PostLikes';
-import { CommentLikes } from './../../entities/CommentsLikes';
 import { Posts } from './../../entities/Posts';
-
-import { ConfigService } from '@nestjs/config';
 import { PostsCreateRequestsDto } from './../dto/postscreate.request.dto';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -24,27 +20,14 @@ export class PostsService {
 
   //의존성 주입
   constructor(
-    @InjectRepository(CommentLikes)
-    private readonly commentLikesRepository: Repository<CommentLikes>,
-    @InjectRepository(Comments)
-    private readonly commentsRepository: Repository<Comments>,
     @InjectRepository(PostLikes)
     private readonly postLikesRepository: Repository<PostLikes>,
     @InjectRepository(Posts)
     private readonly postsRepository: Repository<Posts>,
-    @InjectModel(UploadFiles.name)
-    private readonly uploadFilesModel: Model<UploadFiles>,
-    private readonly configService: ConfigService,
+    // @InjectModel(UploadFiles.name)
+    // private readonly uploadFilesModel: Model<UploadFiles>,
     private readonly awsService: AWSService,
-    private readonly fileUrlService: FileUrlService,
-  ) {
-    this.awsS3 = new AWS.S3({
-      accessKeyId: this.configService.get('AWS_S3_ACCESS_KEY'),
-      secretAccessKey: this.configService.get('AWS_S3_SECRET_KEY'),
-      region: this.configService.get('AWS_S3_REGION'),
-    });
-    this.S3_BUCKET_NAME = this.configService.get('AWS_S3_BUCKET_NAME');
-  }
+  ) {}
 
   //게시글 작성
   async createPosts(
@@ -71,11 +54,13 @@ export class PostsService {
         return v.contentUrl;
       });
 
+      console.log(JSON.stringify(contentUrl));
+
       //DB에 내용 데이터와 S3에 저장된 이미지 및 영상 데이터 URL 저장
       await this.postsRepository.save({
         title,
         content,
-        fileId: JSON.stringify(fileId),
+        fileUrl: JSON.stringify(contentUrl),
         category,
         UserId,
       });
@@ -127,14 +112,12 @@ export class PostsService {
         'p.category',
         'u.nickname',
         'p.createdAt',
-        'pl2.UserId',
+        'pl',
       ])
       .leftJoin('p.User', 'u')
-      .leftJoin('p.Comments', 'c')
       .leftJoin('p.PostLikes', 'pl')
-      .leftJoin('p.PostLikes', 'pl2')
-      .loadRelationCountAndMap('p.Comments', 'p.Comments')
-      .loadRelationCountAndMap('pl', 'p.PostLikes', 'plCount')
+      .loadRelationCountAndMap('p.commentsCount', 'p.Comments')
+      .loadRelationCountAndMap('p.likesCount', 'p.PostLikes')
       .where('p.category = :category', { category: category })
       .andWhere(nickExist.condition, nickExist.conditionDetail)
       .orderBy('p.createdAt', 'DESC')
@@ -149,14 +132,14 @@ export class PostsService {
         const newTimeGap = timeGap(post.createdAt);
 
         return {
-          postid: post.id,
+          postId: post.id,
           nickname: post.User.nickname,
           title: post.title,
           content: post.content,
           contentUrl: JSON.parse(post.fileUrl),
           category: post.category,
-          commentCount: post.Comments,
-          likesCount: post['undefined'], // 이거 언디파인드로 나오는거 어케 살리지
+          commentCount: post['commentsCount'],
+          likesCount: post['likesCount'],
           createdAt: newTimeGap,
           isLiked: isLiked.length !== 0 ? true : false,
         };
