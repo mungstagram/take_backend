@@ -26,6 +26,7 @@ import {
 import { EventsModule } from './events/events.module';
 import { DmsModule } from './dms/dms.module';
 import mongoose from 'mongoose';
+import { ProfileModule } from './profile/profile.module';
 
 const mysqlOptions = {
   useFactory: async (
@@ -72,6 +73,7 @@ const mongodbOptions = {
     TodosModule,
     EventsModule,
     DmsModule,
+    ProfileModule,
     MongooseModule.forFeature([
       {
         name: UploadFiles.name,

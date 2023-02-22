@@ -313,26 +313,3 @@ export class PostsService {
     }
   }
 }
-//기존에 있던 이미지나 영상 파일 S3에서 삭제
-// const findPost = await this.postsRepository.findBy({ id: postId });
-
-// const postContent_url = findPost[0].content_url.split(',');
-
-// await Promise.all(
-//   postContent_url.map(async (content_url) => {
-//     const findKey = content_url.split('/')[4];
-//     const keyInfo = `project/${findKey}`;
-
-//     const params = {
-//       Bucket: process.env.AWS_S3_BUCKET_NAME,
-//       Key: keyInfo,
-//     };
-
-//     const s3 = this.awsS3;
-//     s3.deleteObject(params, function (err, data) {
-//       if (err) {
-//       } else {
-//       }
-//     });
-//   }),
-// );
