@@ -37,7 +37,7 @@ export class Dogs {
   representative: boolean;
 
   @Column({ type: 'text' })
-  fileId: string;
+  fileUrl: string;
 
   @Column({ type: 'text' })
   introduce: string;

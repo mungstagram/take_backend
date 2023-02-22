@@ -1,3 +1,4 @@
+import { FileUrlService } from './../helper/get.file.url.helper';
 import { UploadFiles, UploadFilesSchema } from './../models/UploadFiles';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AWSService } from './../helper/fileupload.helper';
@@ -22,7 +23,7 @@ import { CommentLikes } from 'src/entities/CommentsLikes';
     ]),
   ],
   controllers: [PostsController],
-  providers: [PostsService, AWSService],
+  providers: [PostsService, AWSService, FileUrlService],
   exports: [PostsService],
 })
 export class PostsModule {}
