@@ -18,15 +18,12 @@ import { PostsModule } from './posts/posts.module';
 import { AuthModule } from './auth/auth.module';
 import { CommentsModule } from './comments/comments.module';
 import { TodosModule } from './todos/todos.module';
-import {
-  MongooseModule,
-  MongooseModuleOptions,
-  Schema,
-} from '@nestjs/mongoose';
+import { MongooseModule, MongooseModuleOptions } from '@nestjs/mongoose';
 import { EventsModule } from './events/events.module';
 import { DmsModule } from './dms/dms.module';
 import mongoose from 'mongoose';
 import { ProfileModule } from './profile/profile.module';
+import { SearchesModule } from './searches/searches.module';
 
 const mysqlOptions = {
   useFactory: async (
@@ -80,6 +77,7 @@ const mongodbOptions = {
         schema: UploadFilesSchema,
       },
     ]),
+    SearchesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
