@@ -25,7 +25,11 @@ export class TodoCreateRequestDto extends PickType(TodoRequestDto, [
   'UserId',
 ] as const) {}
 
-export class TodoUpdateRequestDto extends TodoRequestDto {}
+export class TodoUpdateRequestDto extends PickType(TodoRequestDto, [
+  'UserId',
+  'id',
+  'content',
+] as const) {}
 
 export class TodoDeleteRequestDto extends PickType(TodoRequestDto, [
   'id',

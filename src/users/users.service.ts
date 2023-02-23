@@ -107,7 +107,6 @@ export class UsersService {
       contentUrl: JSON.parse(userData.fileUrl)[0],
       postsCount: userData['postsCount'],
       dogsCount: userData['dogsCount'],
-      isSameUser: userData.id === userId ? true : false,
     };
   }
 }
