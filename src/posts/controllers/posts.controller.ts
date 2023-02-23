@@ -153,6 +153,7 @@ export class PostsController {
 
   //게시글 좋아요 api
   @ApiOperation({ summary: '게시물 좋아요 api' })
+  @ApiBearerAuth('Authorization')
   @UseGuards(JwtAuthGuard)
   @HttpCode(201)
   @Put('/likes/:postId')

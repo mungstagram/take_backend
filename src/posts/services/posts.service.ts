@@ -80,6 +80,7 @@ export class PostsService {
       await queryRunner.commitTransaction();
 
       return {
+        id: postData.identifiers[0].id,
         title,
         content,
         contentUrl,
@@ -364,7 +365,7 @@ export class PostsService {
     });
 
     if (!existPostLikes[0]) {
-      await this.postLikesRepository.save({ PostId: postId, UserId: userId });
+      await this.postLikesRepository.insert({ PostId: postId, UserId: userId });
 
       return 'success makes likes';
     } else {
