@@ -4,7 +4,11 @@ import { JwtPayload } from './../../auth/jwt/jwt.payload.dto';
 import { PostLikes } from './../../entities/PostLikes';
 import { Posts } from './../../entities/Posts';
 import { PostsCreateRequestsDto } from './../dto/postscreate.request.dto';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import * as AWS from 'aws-sdk';
@@ -264,6 +268,16 @@ export class PostsService {
 
     const userId = payload.sub;
 
+    const postData = await this.postsRepository.findOne({
+      where: { id: postId },
+    });
+
+    if (!postData)
+      throw new BadRequestException('존재하지 않는 게시글 입니다.');
+
+    if (postData.UserId === userId)
+      throw new ForbiddenException('본인의 게시글만 수정 가능합니다');
+
     const filesData = await this.awsService.fileUploads(files, category);
     const contentUrl = filesData.map((v) => {
       return v.contentUrl;
@@ -320,6 +334,16 @@ export class PostsService {
   //삭제 기능 service
   async deletePost(postId: number, payload: JwtPayload) {
     const userId = payload.sub;
+
+    const postData = await this.postsRepository.findOne({
+      where: { id: postId },
+    });
+
+    if (!postData)
+      throw new BadRequestException('존재하지 않는 게시글 입니다.');
+
+    if (!(postData.UserId === userId))
+      throw new ForbiddenException('본인의 게시글만 삭제 가능합니다.');
 
     //DB에서 논리적 삭제
     await this.postsRepository.softDelete({
