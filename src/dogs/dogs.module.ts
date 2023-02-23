@@ -1,7 +1,5 @@
 import { Files } from './../entities/Files';
-import { FileUrlService } from './../helper/get.file.url.helper';
 import { AWSService } from './../helper/fileupload.helper';
-import { UploadFiles, UploadFilesSchema } from './../models/UploadFiles';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthModule } from './../auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
@@ -16,12 +14,9 @@ import { DogsService } from './dogs.service';
     ConfigModule.forRoot(),
     TypeOrmModule.forFeature([Dogs, Files]),
     AuthModule,
-    MongooseModule.forFeature([
-      { name: UploadFiles.name, schema: UploadFilesSchema },
-    ]),
   ],
   controllers: [DogsController],
-  providers: [DogsService, AWSService, FileUrlService],
+  providers: [DogsService, AWSService],
   exports: [DogsService],
 })
 export class DogsModule {}

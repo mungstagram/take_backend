@@ -1,8 +1,6 @@
 import { Files } from './../entities/Files';
 import { BadRequestException } from '@nestjs/common';
-import { UploadFiles } from './../models/UploadFiles';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+
 import * as path from 'path';
 import * as AWS from 'aws-sdk';
 import { createHash } from 'crypto';
@@ -11,8 +9,6 @@ import { Repository } from 'typeorm';
 
 export class AWSService {
   constructor(
-    @InjectModel(UploadFiles.name)
-    private readonly uploadFileModel: Model<UploadFiles>,
     @InjectRepository(Files)
     private readonly filesRespository: Repository<Files>,
   ) {}

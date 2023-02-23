@@ -1,5 +1,4 @@
 import { Files } from './entities/Files';
-import { UploadFiles, UploadFilesSchema } from './models/UploadFiles';
 import { DogsModule } from './dogs/dogs.module';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -58,28 +57,6 @@ const postgresOptions = {
   inject: [ConfigService],
 };
 
-const mysqlOptions = {
-  useFactory: async (
-    configService: ConfigService,
-  ): Promise<TypeOrmModuleOptions> => ({
-    type: 'mysql',
-    host: configService.get('MYSQL_DB_HOST'),
-    port: 3306,
-    username: configService.get('MYSQL_DB_USERNAME'),
-    password: configService.get('MYSQL_DB_PASSWORD'),
-    database:
-      configService.get('MYSQL_DB_NAME') + '_' + configService.get('NODE_ENV'),
-    entities: [Users, Posts, Tokens, PostLikes, Dogs, Comments, CommentLikes],
-    migrations: [__dirname + '/src/migrations/*.ts'],
-    charset: 'utf8mb4_bin',
-    synchronize: false,
-    autoLoadEntities: true,
-    keepConnectionAlive: true,
-    logging: configService.get('NODE_ENV') === 'dev' ? true : false,
-  }),
-  inject: [ConfigService],
-};
-
 const mongodbOptions = {
   useFactory: async (
     configService: ConfigService,
@@ -104,12 +81,6 @@ const mongodbOptions = {
     EventsModule,
     DmsModule,
     ProfileModule,
-    MongooseModule.forFeature([
-      {
-        name: UploadFiles.name,
-        schema: UploadFilesSchema,
-      },
-    ]),
     SearchesModule,
   ],
   controllers: [AppController],

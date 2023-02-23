@@ -1,6 +1,4 @@
 import { PostFiles } from './../entities/PostFiles';
-import { FileUrlService } from './../helper/get.file.url.helper';
-import { UploadFiles, UploadFilesSchema } from './../models/UploadFiles';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AWSService } from './../helper/fileupload.helper';
 import { PostLikes } from './../entities/PostLikes';
@@ -27,12 +25,9 @@ import { Files } from '../entities/Files';
       PostFiles,
     ]),
     AuthModule,
-    MongooseModule.forFeature([
-      { name: UploadFiles.name, schema: UploadFilesSchema },
-    ]),
   ],
   controllers: [PostsController],
-  providers: [PostsService, AWSService, FileUrlService],
+  providers: [PostsService, AWSService],
   exports: [PostsService],
 })
 export class PostsModule {}

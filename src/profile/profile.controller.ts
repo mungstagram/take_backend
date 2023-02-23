@@ -59,9 +59,9 @@ export class ProfileController {
     schema: {
       type: 'object',
       properties: {
-        userNickname: {
-          description: '닉네임',
-          example: '신중완',
+        changeNickname: {
+          description: '바꿀 닉네임',
+          example: 'Seeder3423',
           type: 'string',
         },
         introduce: {
@@ -83,7 +83,7 @@ export class ProfileController {
     @Param('nickname') nickname: string,
     @GetPayload() payload: JwtPayload,
     @UploadedFiles() files: Array<Express.Multer.File>,
-    @Body() data,
+    @Body() data: { introduce: string; changeNickname: string },
   ) {
     const userId = payload.sub;
     return await this.profileService.updateUserProfile(
@@ -123,6 +123,11 @@ export class ProfileController {
           description: '강아지 몸무게',
           example: '8.5',
           type: 'number',
+        },
+        gender: {
+          description: '강아지 성별',
+          example: true,
+          type: 'boolean',
         },
         birthday: {
           description: '강아지 태어난 날',
