@@ -1,3 +1,4 @@
+import { Files } from './../entities/Files';
 import { FileUrlService } from './../helper/get.file.url.helper';
 import { AWSService } from './../helper/fileupload.helper';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -14,7 +15,7 @@ import { UploadFiles, UploadFilesSchema } from './../models/UploadFiles';
 @Module({
   imports: [
     ConfigModule.forRoot(),
-    TypeOrmModule.forFeature([Users, Dogs]),
+    TypeOrmModule.forFeature([Users, Dogs, Files]),
     AuthModule,
     MongooseModule.forFeature([
       { name: UploadFiles.name, schema: UploadFilesSchema },

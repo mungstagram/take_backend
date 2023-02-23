@@ -1,3 +1,4 @@
+import { Files } from './../entities/Files';
 import { BadRequestException } from '@nestjs/common';
 import { UploadFiles } from './../models/UploadFiles';
 import { InjectModel } from '@nestjs/mongoose';
@@ -5,11 +6,15 @@ import { Model } from 'mongoose';
 import * as path from 'path';
 import * as AWS from 'aws-sdk';
 import { createHash } from 'crypto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 export class AWSService {
   constructor(
     @InjectModel(UploadFiles.name)
     private readonly uploadFileModel: Model<UploadFiles>,
+    @InjectRepository(Files)
+    private readonly filesRespository: Repository<Files>,
   ) {}
 
   async fileUploads(files: Array<Express.Multer.File>, category: string) {
@@ -25,7 +30,9 @@ export class AWSService {
         hashSum.update(file.buffer);
         const hex = hashSum.digest('hex');
 
-        const hashCheck = await this.uploadFileModel.findOne({ hash: hex });
+        const hashCheck = await this.filesRespository.findOne({
+          where: { hash: hex },
+        });
 
         if (hashCheck) {
           return hashCheck;
@@ -51,9 +58,13 @@ export class AWSService {
           throw new BadRequestException('file uploads failed');
         }
 
-        const uploadedFiles = await this.uploadFileModel.create({
+        const insertFiles = await this.filesRespository.insert({
           contentUrl: content_url,
           hash: hex,
+        });
+
+        const uploadedFiles = await this.filesRespository.findOne({
+          where: { id: insertFiles.identifiers[0].id },
         });
 
         return uploadedFiles;
@@ -61,7 +72,7 @@ export class AWSService {
     );
 
     return result.map((v) => {
-      return { id: v.id, contentUrl: v.contentUrl, hash: v.hash };
+      return { id: v.id, contentUrl: v.contentUrl };
     });
   }
 }

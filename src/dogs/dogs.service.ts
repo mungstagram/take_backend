@@ -34,7 +34,7 @@ export class DogsService {
     const representative = !dogExist ? true : false;
     const dog = await this.dogsRepository.insert({
       representative: representative,
-      fileUrl: JSON.stringify(contentUrl),
+      contentUrl: JSON.stringify(contentUrl),
       ...dogCreateRequestDto,
     });
 

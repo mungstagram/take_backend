@@ -20,7 +20,7 @@ export class SearchesService {
           userId: user.id,
           nickname: user.nickname,
           introduce: user.introduce,
-          contentUrl: JSON.parse(user.fileUrl),
+          contentUrl: JSON.parse(user.contentUrl),
         };
       });
 

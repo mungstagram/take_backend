@@ -36,7 +36,7 @@ export class Users {
   introduce: string;
 
   @Column({ type: 'text' })
-  fileUrl: string;
+  contentUrl: string;
 
   @Column({ type: 'varchar', length: 6 })
   provider: string;

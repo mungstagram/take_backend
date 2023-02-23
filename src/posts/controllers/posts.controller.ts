@@ -128,7 +128,7 @@ export class PostsController {
       },
     },
   })
-  @UseInterceptors(FilesInterceptor('images', 5))
+  @UseInterceptors(FilesInterceptor('files', 5))
   async updatePost(
     @Body() data: PostsCreateRequestsDto,
     @Param('postId') postId: number,
@@ -140,6 +140,7 @@ export class PostsController {
 
   //게시글 삭제 api
   @ApiOperation({ summary: '게시물 삭제 api' })
+  @ApiBearerAuth('Authorization')
   @UseGuards(JwtAuthGuard)
   @Delete(':postId')
   @HttpCode(204)

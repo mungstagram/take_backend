@@ -59,7 +59,8 @@ export class ProfileService {
       return {
         id: dog.id,
         name: dog.name,
-        contentUrl: dog.fileUrl.length !== 0 ? JSON.parse(dog.fileUrl) : null,
+        contentUrl:
+          dog.contentUrl.length !== 0 ? JSON.parse(dog.contentUrl) : null,
         daysWithin: daysWithin,
         age: age,
         species: dog.species,
@@ -83,7 +84,7 @@ export class ProfileService {
       {
         user: {
           nickname: userData[0].nickname,
-          contentUrl: JSON.parse(userData[0].fileUrl),
+          contentUrl: JSON.parse(userData[0].contentUrl),
         },
       },
       { dogs: allDogsData },
@@ -106,7 +107,8 @@ export class ProfileService {
       return {
         id: dog.id,
         name: dog.name,
-        contentUrl: dog.fileUrl.length !== 0 ? JSON.parse(dog.fileUrl) : null,
+        contentUrl:
+          dog.contentUrl.length !== 0 ? JSON.parse(dog.contentUrl) : null,
         introduce: dog.introduce,
         species: dog.species,
         weight: dog.weight,
@@ -128,7 +130,7 @@ export class ProfileService {
       {
         user: {
           nickname: userData[0].nickname,
-          contentUrl: JSON.parse(userData[0].fileUrl),
+          contentUrl: JSON.parse(userData[0].contentUrl),
           introduce: userData[0].introduce,
           dogsCount: allDogs.length,
         },
@@ -168,7 +170,7 @@ export class ProfileService {
     const newProfileImage = await this.awsService.fileUploads(files, category);
 
     const contentUrl = newProfileImage.map((v) => {
-      return v.contentUrl;
+      return v.id;
     });
 
     //유저 정보 업데이트
@@ -178,7 +180,9 @@ export class ProfileService {
       .set({
         nickname: data.userNickname,
         introduce: data.introduce,
-        fileUrl: !files[0] ? userData.fileUrl : JSON.stringify(contentUrl),
+        contentUrl: !files[0]
+          ? userData.contentUrl
+          : JSON.stringify(contentUrl),
       })
       .where('id=:userId', { userId: userId })
       .execute();
@@ -186,7 +190,7 @@ export class ProfileService {
     return {
       nickname: data.userNickname,
       introduce: data.introduce,
-      contentUrl: !files[0] ? JSON.parse(userData.fileUrl) : contentUrl,
+      contentUrl: !files[0] ? JSON.parse(userData.contentUrl) : contentUrl,
     };
   }
 
@@ -227,7 +231,7 @@ export class ProfileService {
     const newDogImage = await this.awsService.fileUploads(files, category);
 
     const contentUrl = newDogImage.map((v) => {
-      return v.contentUrl;
+      return v.id;
     });
 
     //강아지 정보 업데이트
@@ -241,7 +245,7 @@ export class ProfileService {
         weight: data.weight,
         birthday: data.birthday,
         bringDate: data.bringDate,
-        fileUrl: !files[0] ? dogData.fileUrl : JSON.stringify(contentUrl),
+        contentUrl: !files[0] ? dogData.contentUrl : JSON.stringify(contentUrl),
       })
       .where('id= :id', { id: id })
       .execute();
@@ -254,7 +258,7 @@ export class ProfileService {
       weight: data.weight,
       birthday: data.birthday,
       bringDate: data.bringDate,
-      contentUrl: !files[0] ? JSON.parse(dogData.fileUrl) : contentUrl,
+      contentUrl: !files[0] ? JSON.parse(dogData.contentUrl) : contentUrl,
     };
   }
 }

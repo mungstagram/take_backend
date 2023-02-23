@@ -1,3 +1,4 @@
+import { Files } from './../entities/Files';
 import { FileUrlService } from './../helper/get.file.url.helper';
 import { AWSService } from './../helper/fileupload.helper';
 import { UploadFiles, UploadFilesSchema } from './../models/UploadFiles';
@@ -13,7 +14,7 @@ import { DogsService } from './dogs.service';
 @Module({
   imports: [
     ConfigModule.forRoot(),
-    TypeOrmModule.forFeature([Dogs]),
+    TypeOrmModule.forFeature([Dogs, Files]),
     AuthModule,
     MongooseModule.forFeature([
       { name: UploadFiles.name, schema: UploadFilesSchema },

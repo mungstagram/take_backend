@@ -1,3 +1,4 @@
+import { Files } from './entities/Files';
 import { UploadFiles, UploadFilesSchema } from './models/UploadFiles';
 import { DogsModule } from './dogs/dogs.module';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
@@ -24,6 +25,38 @@ import { DmsModule } from './dms/dms.module';
 import mongoose from 'mongoose';
 import { ProfileModule } from './profile/profile.module';
 import { SearchesModule } from './searches/searches.module';
+
+const postgresOptions = {
+  useFactory: async (
+    configService: ConfigService,
+  ): Promise<TypeOrmModuleOptions> => ({
+    type: 'postgres',
+    host: configService.get('POSTGRES_DB_HOST'),
+    port: 5432,
+    username: configService.get('POSTGRES_DB_USERNAME'),
+    password: configService.get('POSTGRES_DB_PASSWORD'),
+    database:
+      configService.get('POSTGRES_DB_NAME') +
+      '_' +
+      configService.get('NODE_ENV'),
+    entities: [
+      Users,
+      Posts,
+      Tokens,
+      PostLikes,
+      Dogs,
+      Comments,
+      CommentLikes,
+      Files,
+    ],
+    migrations: ['src/migrations/**/*.ts'],
+    synchronize: false,
+    autoLoadEntities: true,
+    keepConnectionAlive: true,
+    logging: configService.get('NODE_ENV') === 'dev' ? true : false,
+  }),
+  inject: [ConfigService],
+};
 
 const mysqlOptions = {
   useFactory: async (
@@ -60,7 +93,7 @@ const mongodbOptions = {
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    TypeOrmModule.forRootAsync(mysqlOptions),
+    TypeOrmModule.forRootAsync(postgresOptions),
     MongooseModule.forRootAsync(mongodbOptions),
     UsersModule,
     PostsModule,
