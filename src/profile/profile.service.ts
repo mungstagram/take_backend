@@ -59,7 +59,7 @@ export class ProfileService {
       return {
         id: dog.id,
         name: dog.name,
-        contentUrl: JSON.parse(dog.fileUrl)[0],
+        contentUrl: dog.fileUrl.length !== 0 ? JSON.parse(dog.fileUrl) : null,
         daysWithin: daysWithin,
         age: age,
         species: dog.species,
@@ -83,7 +83,7 @@ export class ProfileService {
       {
         user: {
           nickname: userData[0].nickname,
-          contentUrl: JSON.parse(userData[0].fileUrl)[0],
+          contentUrl: JSON.parse(userData[0].fileUrl),
         },
       },
       { dogs: allDogsData },
@@ -106,7 +106,7 @@ export class ProfileService {
       return {
         id: dog.id,
         name: dog.name,
-        contentUrl: JSON.parse(dog.fileUrl)[0],
+        contentUrl: dog.fileUrl.length !== 0 ? JSON.parse(dog.fileUrl) : null,
         introduce: dog.introduce,
         species: dog.species,
         weight: dog.weight,
@@ -128,7 +128,7 @@ export class ProfileService {
       {
         user: {
           nickname: userData[0].nickname,
-          contentUrl: JSON.parse(userData[0].fileUrl)[0],
+          contentUrl: JSON.parse(userData[0].fileUrl),
           introduce: userData[0].introduce,
           dogsCount: allDogs.length,
         },
@@ -186,7 +186,7 @@ export class ProfileService {
     return {
       nickname: data.userNickname,
       introduce: data.introduce,
-      contentUrl: !files[0] ? JSON.parse(userData.fileUrl)[0] : contentUrl[0],
+      contentUrl: !files[0] ? JSON.parse(userData.fileUrl) : contentUrl,
     };
   }
 
@@ -254,7 +254,7 @@ export class ProfileService {
       weight: data.weight,
       birthday: data.birthday,
       bringDate: data.bringDate,
-      contentUrl: !files[0] ? JSON.parse(dogData.fileUrl)[0] : contentUrl[0],
+      contentUrl: !files[0] ? JSON.parse(dogData.fileUrl) : contentUrl,
     };
   }
 }

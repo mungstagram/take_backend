@@ -1,4 +1,4 @@
-import { timeGap } from 'src/helper/timegap.helper';
+import { timeGap } from '../helper/timegap.helper';
 import { ChatRooms } from './../models/ChatRoom';
 import { InjectModel } from '@nestjs/mongoose';
 import { Injectable } from '@nestjs/common';
@@ -7,7 +7,7 @@ import { UpdateDmDto } from './dto/update-dm.dto';
 import { Model } from 'mongoose';
 import { Chattings } from '../models/Chattings';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Users } from 'src/entities/Users';
+import { Users } from '../entities/Users';
 import { Repository } from 'typeorm';
 
 @Injectable()

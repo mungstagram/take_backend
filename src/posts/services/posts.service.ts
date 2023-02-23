@@ -1,5 +1,3 @@
-import { Users } from 'src/entities/Users';
-import { UploadFiles } from './../../models/UploadFiles';
 import { AWSService } from './../../helper/fileupload.helper';
 import { JwtPayload } from './../../auth/jwt/jwt.payload.dto';
 import { PostLikes } from './../../entities/PostLikes';
@@ -10,8 +8,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as AWS from 'aws-sdk';
 import { timeGap } from 'src/helper/timegap.helper';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
 
 @Injectable()
 export class PostsService {
@@ -45,10 +41,6 @@ export class PostsService {
     try {
       //file 별로 구분하여 s3에 저장
       const images = await this.awsService.fileUploads(files, category);
-
-      const fileId = images.map((v) => {
-        return v.id;
-      });
 
       const contentUrl = images.map((v) => {
         return v.contentUrl;
@@ -181,8 +173,10 @@ export class PostsService {
         .leftJoinAndSelect('p.Comments', 'c')
         .leftJoin('p.PostLikes', 'pl')
         .loadRelationCountAndMap('p.PostLikes', 'p.PostLikes')
-        .where('c.PostId=:postId', { postId: postId })
+        .where('p.id=:postId', { postId: postId })
         .getOne();
+
+      console.log(onePost);
 
       const newTimeGap = timeGap(onePost.createdAt);
 
@@ -191,14 +185,17 @@ export class PostsService {
         UserId: userId,
       });
 
-      const sortedComments = onePost.Comments.sort((a, b) => {
+      const sortedComments = onePost.Comments?.sort((a, b) => {
+        if (onePost.Comments.length === 0) {
+          return 0;
+        }
         if (
           typeof a.createdAt.getTime() === 'number' &&
           typeof b.createdAt.getTime() === 'number'
         ) {
           return b.createdAt.getTime() - a.createdAt.getTime();
         }
-      }).map((comment) => {
+      })?.map((comment) => {
         return {
           id: comment.id,
           comment: comment.comment,
@@ -214,11 +211,11 @@ export class PostsService {
         content: onePost.content,
         contentUrl: JSON.parse(onePost.fileUrl),
         category: onePost.category,
-        comments: sortedComments,
         likesCount: onePost.PostLikes,
         createdAt: newTimeGap,
         isLiked: isLikedPost[0] ? true : false,
         commentsCount: onePost.Comments.length,
+        comments: sortedComments,
       };
     } catch (error) {
       throw new BadRequestException(error.message);
