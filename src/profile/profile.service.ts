@@ -1,8 +1,8 @@
 import { UserCheckRequestDto } from './../users/dtos/user.reqeust.dto';
 import { AWSService } from './../helper/fileupload.helper';
 import { ConfigService } from '@nestjs/config';
-import { Dogs } from './../entities/Dogs';
-import { Users } from './../entities/Users';
+import { Dogs } from '../entities/Dogs';
+import { Users } from '../entities/Users';
 import {
   Injectable,
   UnauthorizedException,
@@ -19,10 +19,10 @@ export class ProfileService {
   public readonly S3_BUCKET_NAME: string;
 
   constructor(
-    @InjectRepository(Users)
+    @InjectRepository(Users, 'postgresql')
     private readonly usersRepository: Repository<Users>,
     private readonly configService: ConfigService,
-    @InjectRepository(Dogs)
+    @InjectRepository(Dogs, 'postgresql')
     private readonly dogsRepository: Repository<Dogs>,
     private readonly awsService: AWSService,
     private readonly usersService: UsersService,

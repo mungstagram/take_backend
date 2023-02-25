@@ -1,4 +1,4 @@
-import { Files } from './../entities/Files';
+import { Files } from '../entities/Files';
 import { BadRequestException } from '@nestjs/common';
 
 import * as path from 'path';
@@ -9,7 +9,7 @@ import { Repository } from 'typeorm';
 
 export class AWSService {
   constructor(
-    @InjectRepository(Files)
+    @InjectRepository(Files, 'postgresql')
     private readonly filesRespository: Repository<Files>,
   ) {}
 

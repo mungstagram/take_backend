@@ -8,7 +8,8 @@ import { Repository } from 'typeorm';
 @Injectable()
 export class DogsService {
   constructor(
-    @InjectRepository(Dogs) private readonly dogsRepository: Repository<Dogs>,
+    @InjectRepository(Dogs, 'postgresql')
+    private readonly dogsRepository: Repository<Dogs>,
     private readonly awsService: AWSService,
   ) {}
 

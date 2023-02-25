@@ -16,7 +16,7 @@ import { Repository } from 'typeorm';
 @Injectable()
 export class TodosService {
   constructor(
-    @InjectRepository(Todos)
+    @InjectRepository(Todos, 'postgresql')
     private readonly todosRepository: Repository<Todos>,
   ) {}
 

@@ -1,13 +1,13 @@
-import { Files } from './../../entities/Files';
-import { PostLikes } from './../../entities/PostLikes';
-import { Dogs } from '../../entities/Dogs';
-import { Users } from '../../entities/Users';
 import { DataSource } from 'typeorm';
 import { Seeder, SeederFactoryManager } from 'typeorm-extension';
-import { Posts } from '../../entities/Posts';
 import { Comments } from '../../entities/Comments';
 import { Logger } from '@nestjs/common';
 import { CommentLikes } from '../../entities/CommentsLikes';
+import { Dogs } from '../../entities/Dogs';
+import { Files } from '../../entities/Files';
+import { PostLikes } from '../../entities/PostLikes';
+import { Posts } from '../../entities/Posts';
+import { Users } from '../../entities/Users';
 
 export default class Seeding implements Seeder {
   public async run(

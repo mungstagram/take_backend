@@ -1,6 +1,5 @@
-import { ChatRooms } from './../models/ChatRoom';
-import { Model } from 'mongoose';
-import { Logger, Delete } from '@nestjs/common';
+import { ChatRooms } from '../entities/mongo/ChatRoom';
+import { Logger } from '@nestjs/common';
 import {
   WebSocketGateway,
   WebSocketServer,
@@ -11,8 +10,7 @@ import {
   MessageBody,
 } from '@nestjs/websockets';
 import { Socket, Server } from 'socket.io';
-import { Chattings } from '../models/Chattings';
-import { InjectModel } from '@nestjs/mongoose';
+import { Chattings } from '../entities/mongo/Chattings';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Users } from '../entities/Users';
 import { Repository } from 'typeorm';
@@ -22,11 +20,11 @@ const users: object[] = [];
 @WebSocketGateway(80, { namespace: /[a-zA-Z0-9]/g })
 export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
-    @InjectModel(Chattings.name)
-    private readonly chattingsModel: Model<Chattings>,
-    @InjectModel(ChatRooms.name)
-    private readonly chatRoomsModel: Model<ChatRooms>,
-    @InjectRepository(Users)
+    @InjectRepository(Chattings, 'mongodb')
+    private readonly chattingsRepository: Repository<Chattings>,
+    @InjectRepository(ChatRooms, 'mongodb')
+    private readonly chatRoomsRepository: Repository<ChatRooms>,
+    @InjectRepository(Users, 'postgresql')
     private readonly usersRepository: Repository<Users>,
   ) {}
   @WebSocketServer() public server: Server;
@@ -35,9 +33,10 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     Logger.log(socket.nsp.name, 'Connected');
 
     if (!users.length) {
-      const chatRoomUsers = await this.chatRoomsModel.findOne({
-        id: socket.nsp.name,
+      const chatRoomUsers = await this.chatRoomsRepository.findOne({
+        where: { id: socket.nsp.name },
       });
+
       const usersNickname = await this.usersRepository
         .createQueryBuilder('u')
         .select(['u.id', 'u.nickname'])
@@ -75,15 +74,10 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         ? { id: users[0]['id'], nickname: users[0]['nickname'] }
         : { id: users[1]['id'], nickname: users[1]['nickname'] };
 
-    function fileUpload(file) {
-      // file upload 로직
-      // url 반환.
-    }
-
-    const contentUrl = data.content ? fileUpload(data.content) : null;
-    await this.chattingsModel.create({
+    // const contentUrl = data.content ? fileUpload(data.content) : null;
+    await this.chattingsRepository.insert({
       message: data.message,
-      content: contentUrl,
+      contentUrl: '',
       SenderId: sender.id,
       ReceiverId: receiver.id,
       RoomId: socket.nsp.name.split('/')[1],

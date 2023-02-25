@@ -3,7 +3,8 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
-const dataSource = new DataSource({
+const postgresDataSource = new DataSource({
+  name: 'postgresql',
   type: 'postgres',
   host: process.env.POSTGRES_DB_HOST,
   port: 5432,
@@ -16,4 +17,4 @@ const dataSource = new DataSource({
   logging: process.env.NODE_ENV === 'dev' ? true : false,
 });
 
-export default dataSource;
+export default postgresDataSource;

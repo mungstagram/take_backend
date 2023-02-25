@@ -6,7 +6,7 @@ import { Like, Repository } from 'typeorm';
 @Injectable()
 export class SearchesService {
   constructor(
-    @InjectRepository(Users)
+    @InjectRepository(Users, 'postgresql')
     private readonly usersRepository: Repository<Users>,
   ) {}
   async search(query: { category: string; search: string }) {

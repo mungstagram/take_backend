@@ -1,19 +1,20 @@
 import { Files } from 'src/entities/Files';
 import { AWSService } from './../../helper/fileupload.helper';
 import { JwtPayload } from './../../auth/jwt/jwt.payload.dto';
-import { PostLikes } from './../../entities/PostLikes';
-import { Posts } from './../../entities/Posts';
+import { PostLikes } from '../../entities/PostLikes';
+import { Posts } from '../../entities/Posts';
 import { PostsCreateRequestsDto } from './../dto/postscreate.request.dto';
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import * as AWS from 'aws-sdk';
 import { timeGap } from 'src/helper/timegap.helper';
-import { PostFiles } from './../../entities/PostFiles';
+import { PostFiles } from '../../entities/PostFiles';
 
 @Injectable()
 export class PostsService {
@@ -22,16 +23,13 @@ export class PostsService {
 
   //의존성 주입
   constructor(
-    @InjectRepository(PostLikes)
+    @InjectRepository(PostLikes, 'postgresql')
     private readonly postLikesRepository: Repository<PostLikes>,
-    @InjectRepository(Posts)
+    @InjectRepository(Posts, 'postgresql')
     private readonly postsRepository: Repository<Posts>,
-    @InjectRepository(PostFiles)
+    @InjectRepository(PostFiles, 'postgresql')
     private readonly postFilesReposirory: Repository<PostFiles>,
-    // @InjectModel(UploadFiles.name)
-    // private readonly uploadFilesModel: Model<UploadFiles>,
     private readonly awsService: AWSService,
-    private readonly dataSource: DataSource,
   ) {}
 
   //게시글 작성
@@ -47,9 +45,9 @@ export class PostsService {
       throw new BadRequestException('files should not be empty');
     }
 
-    const queryRunner = this.dataSource.createQueryRunner();
+    // const queryRunner = this.dataSource.createQueryRunner();
 
-    await queryRunner.startTransaction();
+    // await queryRunner.startTransaction();
 
     try {
       //file 별로 구분하여 s3에 저장
@@ -77,7 +75,7 @@ export class PostsService {
         return v.contentUrl;
       });
 
-      await queryRunner.commitTransaction();
+      // await queryRunner.commitTransaction();
 
       return {
         id: postData.identifiers[0].id,
@@ -88,10 +86,10 @@ export class PostsService {
         UserId,
       };
     } catch (error) {
-      await queryRunner.rollbackTransaction();
+      // await queryRunner.rollbackTransaction();
       throw new BadRequestException(error.message);
     } finally {
-      await queryRunner.release();
+      // await queryRunner.release();
     }
   }
 
@@ -284,8 +282,8 @@ export class PostsService {
       return v.contentUrl;
     });
 
-    const queryRunnder = this.dataSource.createQueryRunner();
-    await queryRunnder.startTransaction();
+    // const queryRunnder = this.dataSource.createQueryRunner();
+    // await queryRunnder.startTransaction();
     try {
       const findContentId = await this.postFilesReposirory.find({
         where: { PostId: postId },
@@ -316,7 +314,7 @@ export class PostsService {
         .andWhere('UserId=:UserId', { UserId: userId })
         .execute();
 
-      await queryRunnder.commitTransaction();
+      // await queryRunnder.commitTransaction();
 
       return {
         title,
@@ -325,10 +323,10 @@ export class PostsService {
         category,
       };
     } catch (error) {
-      await queryRunnder.rollbackTransaction();
+      // await queryRunnder.rollbackTransaction();
       throw new Error(error.message);
     } finally {
-      await queryRunnder.release();
+      // await queryRunnder.release();
     }
   }
 

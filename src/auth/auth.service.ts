@@ -1,5 +1,5 @@
 import { LoginRequestDto } from './dtos/login.request.dto';
-import { Users } from './../entities/Users';
+import { Users } from '../entities/Users';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   BadRequestException,
@@ -15,9 +15,9 @@ import { Tokens } from '../entities/Tokens';
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectRepository(Users)
+    @InjectRepository(Users, 'postgresql')
     private readonly usersRepository: Repository<Users>,
-    @InjectRepository(Tokens)
+    @InjectRepository(Tokens, 'postgresql')
     private readonly tokensRepository: Repository<Tokens>,
     private readonly jwtService: JwtService,
   ) {}
