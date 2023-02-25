@@ -11,6 +11,7 @@ COPY ["tsconfig.build.json" , "tsconfig.json", "./"]
 COPY ["nest-cli.json" , "./"]
 COPY ["src/", "./src/"]
 COPY ["dataSource.ts" , "./"]
+COPY ["mongoDataSource.ts" , "./"]
 RUN npm run build
 
 # Step 2 : Run
