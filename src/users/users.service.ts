@@ -103,8 +103,8 @@ export class UsersService {
 
     return {
       nickname: userData.nickname,
-      introduce: userData.introduce,
-      contentUrl: JSON.parse(userData.fileUrl)[0],
+      introduce: userData.introduce ? userData.introduce : null,
+      contentUrl: userData.fileUrl ? JSON.parse(userData.fileUrl)[0] : null,
       postsCount: userData['postsCount'],
       dogsCount: userData['dogsCount'],
     };
