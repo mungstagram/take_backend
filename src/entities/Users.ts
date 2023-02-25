@@ -26,19 +26,19 @@ export class Users {
   @Column({ type: 'text' })
   password: string;
 
-  @Column({ type: 'varchar', length: 10 })
+  @Column({ type: 'varchar', length: 10, nullable: true })
   name: string;
 
   @Column({ type: 'varchar', length: '20' })
   nickname: string;
 
-  @Column({ type: 'text' })
+  @Column({ type: 'text', nullable: true })
   introduce: string;
 
-  @Column({ type: 'text' })
+  @Column({ type: 'text', nullable: true })
   contentUrl: string;
 
-  @Column({ type: 'varchar', length: 6 })
+  @Column({ type: 'varchar', length: 6, nullable: true })
   provider: string;
 
   @CreateDateColumn({ type: 'timestamp' })

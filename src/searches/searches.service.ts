@@ -19,8 +19,8 @@ export class SearchesService {
         return {
           userId: user.id,
           nickname: user.nickname,
-          introduce: user.introduce ? user.introduce : null,
-          contentUrl: user.contentUrl ? JSON.parse(user.contentUrl) : null,
+          introduce: user.introduce ? user.introduce : '',
+          contentUrl: user.contentUrl ? JSON.parse(user.contentUrl) : [],
         };
       });
 
