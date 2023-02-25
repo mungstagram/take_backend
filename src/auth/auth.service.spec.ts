@@ -79,11 +79,11 @@ describe('AuthService', () => {
       providers: [
         AuthService,
         {
-          provide: getRepositoryToken(Users),
+          provide: getRepositoryToken(Users, 'postgresql'),
           useClass: MockUserRepository,
         },
         {
-          provide: getRepositoryToken(Tokens),
+          provide: getRepositoryToken(Tokens, 'postgresql'),
           useClass: MockTokenRepository,
         },
       ],

@@ -61,7 +61,10 @@ describe('TodosService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TodosService,
-        { provide: getRepositoryToken(Todos), useClass: MockTodoRepository },
+        {
+          provide: getRepositoryToken(Todos, 'postgresql'),
+          useClass: MockTodoRepository,
+        },
       ],
     }).compile();
 

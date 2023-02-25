@@ -85,11 +85,11 @@ describe('CommentsService', () => {
         CommentsService,
         UsersService,
         {
-          provide: getRepositoryToken(Comments),
+          provide: getRepositoryToken(Comments, 'postgresql'),
           useClass: MockCommentRepository,
         },
         {
-          provide: getRepositoryToken(Users),
+          provide: getRepositoryToken(Users, 'postgresql'),
           useClass: MockUserRepository,
         },
       ],
