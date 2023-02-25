@@ -1,19 +1,17 @@
-import { Users } from './../entities/Users';
+import { Users } from '../entities/Users';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Chattings, ChattingsSchema } from './../models/Chattings';
-import { ChatRooms, ChatRoomsSchema } from './../models/ChatRoom';
-import { MongooseModule } from '@nestjs/mongoose';
+import { Chattings } from '../entities/mongo/Chattings';
+import { ChatRooms } from '../entities/mongo/ChatRoom';
 import { Module } from '@nestjs/common';
 import { DmsService } from './dms.service';
 import { DmsController } from './dms.controller';
+import postgresDataSource from 'dataSource';
+import mongoDataSource from 'mongoDataSource';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([
-      { name: ChatRooms.name, schema: ChatRoomsSchema },
-      { name: Chattings.name, schema: ChattingsSchema },
-    ]),
-    TypeOrmModule.forFeature([Users]),
+    TypeOrmModule.forFeature([Chattings, ChatRooms], mongoDataSource),
+    TypeOrmModule.forFeature([Users], postgresDataSource),
   ],
   controllers: [DmsController],
   providers: [DmsService],

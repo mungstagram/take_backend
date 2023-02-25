@@ -8,7 +8,8 @@ import { Repository } from 'typeorm';
 @Injectable()
 export class DogsService {
   constructor(
-    @InjectRepository(Dogs) private readonly dogsRepository: Repository<Dogs>,
+    @InjectRepository(Dogs, 'postgresql')
+    private readonly dogsRepository: Repository<Dogs>,
     private readonly awsService: AWSService,
   ) {}
 
@@ -34,7 +35,7 @@ export class DogsService {
     const representative = !dogExist ? true : false;
     const dog = await this.dogsRepository.insert({
       representative: representative,
-      fileUrl: JSON.stringify(contentUrl),
+      contentUrl: contentUrl[0],
       ...dogCreateRequestDto,
     });
 

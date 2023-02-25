@@ -1,13 +1,20 @@
+import { Files } from 'src/entities/Files';
 import { AWSService } from './../../helper/fileupload.helper';
 import { JwtPayload } from './../../auth/jwt/jwt.payload.dto';
-import { PostLikes } from './../../entities/PostLikes';
-import { Posts } from './../../entities/Posts';
+import { PostLikes } from '../../entities/PostLikes';
+import { Posts } from '../../entities/Posts';
 import { PostsCreateRequestsDto } from './../dto/postscreate.request.dto';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import * as AWS from 'aws-sdk';
 import { timeGap } from 'src/helper/timegap.helper';
+import { PostFiles } from '../../entities/PostFiles';
 
 @Injectable()
 export class PostsService {
@@ -16,12 +23,12 @@ export class PostsService {
 
   //의존성 주입
   constructor(
-    @InjectRepository(PostLikes)
+    @InjectRepository(PostLikes, 'postgresql')
     private readonly postLikesRepository: Repository<PostLikes>,
-    @InjectRepository(Posts)
+    @InjectRepository(Posts, 'postgresql')
     private readonly postsRepository: Repository<Posts>,
-    // @InjectModel(UploadFiles.name)
-    // private readonly uploadFilesModel: Model<UploadFiles>,
+    @InjectRepository(PostFiles, 'postgresql')
+    private readonly postFilesReposirory: Repository<PostFiles>,
     private readonly awsService: AWSService,
   ) {}
 
@@ -38,26 +45,40 @@ export class PostsService {
       throw new BadRequestException('files should not be empty');
     }
 
+    // const queryRunner = this.dataSource.createQueryRunner();
+
+    // await queryRunner.startTransaction();
+
     try {
       //file 별로 구분하여 s3에 저장
-      const images = await this.awsService.fileUploads(files, category);
-
-      const contentUrl = images.map((v) => {
-        return v.contentUrl;
-      });
-
-      console.log(JSON.stringify(contentUrl));
+      const filesData = await this.awsService.fileUploads(files, category);
 
       //DB에 내용 데이터와 S3에 저장된 이미지 및 영상 데이터 URL 저장
-      await this.postsRepository.save({
+      const postData = await this.postsRepository.insert({
         title,
         content,
-        fileUrl: JSON.stringify(contentUrl),
         category,
         UserId,
       });
 
+      const insertPostFilesData = filesData.map((v) => {
+        const postFiles = new PostFiles();
+        postFiles.PostId = postData.identifiers[0].id;
+        postFiles.FileId = v.id;
+
+        return postFiles;
+      });
+
+      await this.postFilesReposirory.insert(insertPostFilesData);
+
+      const contentUrl = filesData.map((v) => {
+        return v.contentUrl;
+      });
+
+      // await queryRunner.commitTransaction();
+
       return {
+        id: postData.identifiers[0].id,
         title,
         content,
         contentUrl,
@@ -65,7 +86,10 @@ export class PostsService {
         UserId,
       };
     } catch (error) {
+      // await queryRunner.rollbackTransaction();
       throw new BadRequestException(error.message);
+    } finally {
+      // await queryRunner.release();
     }
   }
 
@@ -100,15 +124,17 @@ export class PostsService {
         'p.id',
         'p.title',
         'p.content',
-        'p.fileUrl',
         'p.category',
         'u.fileUrl',
         'u.nickname',
         'p.createdAt',
         'pl',
+        'f.contentUrl',
       ])
       .leftJoin('p.User', 'u')
       .leftJoin('p.PostLikes', 'pl')
+      .leftJoinAndSelect('p.PostFiles', 'pf')
+      .leftJoin('pf.File', 'f')
       .loadRelationCountAndMap('p.commentsCount', 'p.Comments')
       .loadRelationCountAndMap('p.likesCount', 'p.PostLikes')
       .where('p.category = :category', { category: category })
@@ -124,13 +150,17 @@ export class PostsService {
 
         const newTimeGap = timeGap(post.createdAt);
 
+        const contentUrl = post['PostFiles'].map(
+          (v) => v['File']['contentUrl'],
+        );
+
         return {
           postId: post.id,
           nickname: post.User.nickname,
-          profileUrl: JSON.parse(post.User.fileUrl),
+          profileUrl: JSON.parse(post.User.contentUrl),
           title: post.title,
           content: post.content,
-          contentUrl: JSON.parse(post.fileUrl),
+          contentUrl: contentUrl,
           category: post.category,
           commentCount: post['commentsCount'],
           likesCount: post['likesCount'],
@@ -165,14 +195,16 @@ export class PostsService {
           'p.id',
           'p.title',
           'p.content',
-          'p.fileUrl',
           'p.category',
           'u.nickname',
           'u.fileUrl',
           'p.createdAt',
           'pl',
+          'f.contentUrl',
         ])
         .leftJoin('p.User', 'u')
+        .leftJoinAndSelect('p.PostFiles', 'pf')
+        .leftJoin('pf.File', 'f')
         .leftJoinAndSelect('p.Comments', 'c')
         .leftJoin('p.PostLikes', 'pl')
         .loadRelationCountAndMap('p.PostLikes', 'p.PostLikes')
@@ -190,6 +222,10 @@ export class PostsService {
         UserId: userId,
       });
 
+      const contentUrl = onePost['PostFiles'].map(
+        (v) => v['File']['contentUrl'],
+      );
+
       const sortedComments = onePost.Comments?.sort((a, b) => {
         if (onePost.Comments.length === 0) {
           return undefined;
@@ -205,7 +241,7 @@ export class PostsService {
           id: comment.id,
           comment: comment.comment,
           userId: comment.UserId,
-          profileUrl: comment.User.fileUrl,
+          profileUrl: comment.User.contentUrl,
           createdAt: timeGap(comment.createdAt),
         };
       });
@@ -213,10 +249,10 @@ export class PostsService {
       return {
         postid: onePost.id,
         nickname: onePost.User.nickname,
-        profileUrl: onePost.User.fileUrl,
+        profileUrl: onePost.User.contentUrl,
         title: onePost.title,
         content: onePost.content,
-        contentUrl: JSON.parse(onePost.fileUrl),
+        contentUrl: contentUrl,
         category: onePost.category,
         likesCount: onePost.PostLikes,
         createdAt: newTimeGap,
@@ -240,36 +276,82 @@ export class PostsService {
 
     const userId = payload.sub;
 
-    const images = await this.awsService.fileUploads(files, category);
+    const postData = await this.postsRepository.findOne({
+      where: { id: postId },
+    });
 
-    const contentUrl = images.map((v) => {
+    if (!postData)
+      throw new BadRequestException('존재하지 않는 게시글 입니다.');
+
+    if (postData.UserId === userId)
+      throw new ForbiddenException('본인의 게시글만 수정 가능합니다');
+
+    const filesData = await this.awsService.fileUploads(files, category);
+    const contentUrl = filesData.map((v) => {
       return v.contentUrl;
     });
 
-    await this.postsRepository
-      .createQueryBuilder()
-      .update(Posts)
-      .set({
-        title: title,
-        content: content,
-        fileUrl: JSON.stringify(contentUrl),
-        category: category,
-      })
-      .where('id=:id', { id: postId })
-      .andWhere('UserId=:UserId', { UserId: userId })
-      .execute();
+    // const queryRunnder = this.dataSource.createQueryRunner();
+    // await queryRunnder.startTransaction();
+    try {
+      const findContentId = await this.postFilesReposirory.find({
+        where: { PostId: postId },
+      });
 
-    return {
-      title,
-      content,
-      contentUrl,
-      category,
-    };
+      const postFilesIds = findContentId.map((v) => v.id);
+
+      await this.postFilesReposirory.delete(postFilesIds);
+      const insertPostFilesData = filesData.map((v) => {
+        const mapData = new PostFiles();
+        mapData.PostId = postId;
+        mapData.FileId = v.id;
+
+        return mapData;
+      });
+
+      await this.postFilesReposirory.insert(insertPostFilesData);
+
+      await this.postsRepository
+        .createQueryBuilder()
+        .update(Posts)
+        .set({
+          title: title,
+          content: content,
+          category: category,
+        })
+        .where('id=:id', { id: postId })
+        .andWhere('UserId=:UserId', { UserId: userId })
+        .execute();
+
+      // await queryRunnder.commitTransaction();
+
+      return {
+        title,
+        content,
+        contentUrl,
+        category,
+      };
+    } catch (error) {
+      // await queryRunnder.rollbackTransaction();
+      throw new Error(error.message);
+    } finally {
+      // await queryRunnder.release();
+    }
   }
 
   //삭제 기능 service
   async deletePost(postId: number, payload: JwtPayload) {
     const userId = payload.sub;
+
+    const postData = await this.postsRepository.findOne({
+      where: { id: postId },
+    });
+
+    if (!postData)
+      throw new BadRequestException('존재하지 않는 게시글 입니다.');
+
+    if (!(postData.UserId === userId))
+      throw new ForbiddenException('본인의 게시글만 삭제 가능합니다.');
 
     //DB에서 논리적 삭제
     await this.postsRepository.softDelete({
@@ -290,7 +372,7 @@ export class PostsService {
     });
 
     if (!existPostLikes[0]) {
-      await this.postLikesRepository.save({ PostId: postId, UserId: userId });
+      await this.postLikesRepository.insert({ PostId: postId, UserId: userId });
 
       return 'success makes likes';
     } else {

@@ -5,6 +5,8 @@ import {
   DeleteDateColumn,
   Entity,
   JoinColumn,
+  JoinTable,
+  ManyToMany,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
@@ -12,6 +14,8 @@ import {
 } from 'typeorm';
 import { Comments } from './Comments';
 import { Users } from './Users';
+import { Files } from './Files';
+import { PostFiles } from './PostFiles';
 
 @Entity({ name: 'posts' })
 export class Posts {
@@ -23,9 +27,6 @@ export class Posts {
 
   @Column({ type: 'text' })
   content: string;
-
-  @Column({ type: 'text' })
-  fileUrl: string;
 
   @Column({ type: 'text' })
   category: string;
@@ -58,4 +59,8 @@ export class Posts {
   // *  Posts | 1 : M | PostLikes
   @OneToMany(() => PostLikes, (postLikes) => postLikes.Post)
   PostLikes: PostLikes[];
+
+  // *  Posts | 1 : M | PostFiles
+  @OneToMany(() => PostFiles, (postFiles) => postFiles.Post)
+  PostFiles: PostFiles[];
 }

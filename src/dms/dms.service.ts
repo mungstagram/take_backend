@@ -1,24 +1,22 @@
+import { Users } from '../entities/Users';
 import { timeGap } from '../helper/timegap.helper';
-import { ChatRooms } from './../models/ChatRoom';
-import { InjectModel } from '@nestjs/mongoose';
 import { Injectable } from '@nestjs/common';
 import { PopupChatRoomDto } from './dto/popup.chatroom.dto';
 import { UpdateDmDto } from './dto/update-dm.dto';
-import { Model } from 'mongoose';
-import { Chattings } from '../models/Chattings';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Users } from '../entities/Users';
 import { Repository } from 'typeorm';
+import { Chattings } from '../entities/mongo/Chattings';
+import { ChatRooms } from '../entities/mongo/ChatRoom';
 
 @Injectable()
 export class DmsService {
   constructor(
-    @InjectModel(ChatRooms.name)
-    private readonly chatRoomsModel: Model<ChatRooms>,
-    @InjectModel(Chattings.name)
-    private readonly chattingsModel: Model<Chattings>,
-    @InjectRepository(Users)
+    @InjectRepository(Users, 'postgresql')
     private readonly usersRepository: Repository<Users>,
+    @InjectRepository(Chattings, 'mongodb')
+    private readonly chattingsRepository: Repository<Chattings>,
+    @InjectRepository(ChatRooms, 'mongodb')
+    private readonly chatRoomsRepository: Repository<ChatRooms>,
   ) {}
 
   async popupChatRoom(popupChatRoomDto: PopupChatRoomDto) {
@@ -27,10 +25,18 @@ export class DmsService {
         ? [popupChatRoomDto.senderId, popupChatRoomDto.receiverId]
         : [popupChatRoomDto.receiverId, popupChatRoomDto.senderId];
 
-    const chatRoomsExist = await this.chatRoomsModel.findOne({ users });
+    const chatRoomsExist = await this.chatRoomsRepository.findOne({
+      where: { users },
+    });
 
     if (!chatRoomsExist) {
-      const createdChatRooms = await this.chatRoomsModel.create({ users });
+      const newChatRoom = new ChatRooms();
+      newChatRoom.users = users;
+      newChatRoom.createdAt = new Date();
+      newChatRoom.updatedAt = new Date();
+
+      const createdChatRooms = this.chatRoomsRepository.save(newChatRoom);
+
       return createdChatRooms;
     }
     return chatRoomsExist;
@@ -41,8 +47,14 @@ export class DmsService {
   }
 
   async joinChatRoom(chatRoomId: string) {
-    const messages = await this.chattingsModel.find({ RoomId: chatRoomId });
-    const chatRoom = await this.chatRoomsModel.findOne({ id: chatRoomId });
+    const messages = await this.chattingsRepository.find({
+      where: { RoomId: chatRoomId },
+    });
+    const chatRoom = await this.chatRoomsRepository.findOne({
+      where: {
+        id: chatRoomId,
+      },
+    });
 
     const users = await this.usersRepository
       .createQueryBuilder('u')
@@ -51,12 +63,12 @@ export class DmsService {
       .orWhere('id = :user1', { user1: chatRoom.users[1] })
       .getMany();
 
-    messages.sort((a, b) => {
+    messages.sort((newChatRoom, b) => {
       if (
-        typeof a['createdAt'].getTime() === 'number' &&
+        typeof newChatRoom['createdAt'].getTime() === 'number' &&
         typeof b['createdAt'].getTime() === 'number'
       ) {
-        return b['createdAt'].getTime() - a['createdAt'].getTime();
+        return b['createdAt'].getTime() - newChatRoom['createdAt'].getTime();
       }
     });
 
@@ -80,10 +92,10 @@ export class DmsService {
   }
 
   update(id: number, updateDmDto: UpdateDmDto) {
-    return `This action updates a #${id} dm`;
+    return `This action updates newChatRoom #${id} dm`;
   }
 
   remove(id: number) {
-    return `This action removes a #${id} dm`;
+    return `This action removes newChatRoom #${id} dm`;
   }
 }

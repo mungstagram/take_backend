@@ -1,16 +1,17 @@
+import { UserCheckRequestDto } from './../users/dtos/user.reqeust.dto';
 import { AWSService } from './../helper/fileupload.helper';
 import { ConfigService } from '@nestjs/config';
-import { Dogs } from './../entities/Dogs';
-import { Users } from './../entities/Users';
+import { Dogs } from '../entities/Dogs';
+import { Users } from '../entities/Users';
 import {
   Injectable,
   UnauthorizedException,
-  ConflictException,
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as AWS from 'aws-sdk';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class ProfileService {
@@ -18,26 +19,24 @@ export class ProfileService {
   public readonly S3_BUCKET_NAME: string;
 
   constructor(
-    @InjectRepository(Users)
+    @InjectRepository(Users, 'postgresql')
     private readonly usersRepository: Repository<Users>,
     private readonly configService: ConfigService,
-    @InjectRepository(Dogs)
+    @InjectRepository(Dogs, 'postgresql')
     private readonly dogsRepository: Repository<Dogs>,
     private readonly awsService: AWSService,
-  ) {
-    this.awsS3 = new AWS.S3({
-      accessKeyId: this.configService.get('AWS_S3_ACCESS_KEY'),
-      secretAccessKey: this.configService.get('AWS_S3_SECRET_KEY'),
-      region: this.configService.get('AWS_S3_REGION'),
-    });
-    this.S3_BUCKET_NAME = this.configService.get('AWS_S3_BUCKET_NAME');
-  }
+    private readonly usersService: UsersService,
+  ) {}
 
   //홈화면 유저 프로필
   async getHomeUserProfile(userId: number) {
-    const userData = await this.usersRepository.findBy({ id: userId });
-    const allDogs = await this.dogsRepository.findBy({
-      UserId: userId,
+    const userData = await this.usersRepository.findOne({
+      where: { id: userId },
+    });
+    const allDogs = await this.dogsRepository.find({
+      where: {
+        UserId: userId,
+      },
     });
 
     const now = new Date();
@@ -45,12 +44,13 @@ export class ProfileService {
     const allDogsData = allDogs.map((dog) => {
       //함께한 날짜 구하기
       const daysWithin = Math.floor(
-        (now.getTime() - dog.bringDate.getTime()) / (1000 * 60 * 60 * 24),
+        (now.getTime() - new Date(dog.bringDate).getTime()) /
+          (1000 * 60 * 60 * 24),
       );
 
       //강아지 나이 구하기
-      const ageYear = now.getFullYear() - dog.birthday.getFullYear();
-      const ageMonth = now.getMonth() - dog.birthday.getMonth();
+      const ageYear = now.getFullYear() - new Date(dog.birthday).getFullYear();
+      const ageMonth = now.getMonth() - new Date(dog.birthday).getMonth();
       const age =
         ageMonth < 0
           ? `${ageYear - 1}년 ${ageMonth + 12}개월`
@@ -59,13 +59,11 @@ export class ProfileService {
       return {
         id: dog.id,
         name: dog.name,
-        contentUrl: dog.fileUrl.length !== 0 ? JSON.parse(dog.fileUrl) : null,
+        contentUrl: dog.contentUrl.length !== 0 ? dog.contentUrl : null,
         daysWithin: daysWithin,
         age: age,
         species: dog.species,
         weight: dog.weight.toFixed(1),
-        gender: dog.gender === true ? '수컷' : '암컷',
-        introduce: dog.introduce,
         representative: dog.representative,
         birthday: dog.birthday,
       };
@@ -82,8 +80,8 @@ export class ProfileService {
     const data = [
       {
         user: {
-          nickname: userData[0].nickname,
-          contentUrl: JSON.parse(userData[0].fileUrl),
+          nickname: userData.nickname,
+          contentUrl: userData.contentUrl,
         },
       },
       { dogs: allDogsData },
@@ -94,19 +92,23 @@ export class ProfileService {
 
   //유저 프로필 조회 service
   async getUserProfile(nickname: string) {
-    const userData = await this.usersRepository.findBy({
-      nickname: nickname,
+    const userData = await this.usersRepository.findOne({
+      where: {
+        nickname: nickname,
+      },
     });
 
-    const allDogs = await this.dogsRepository.findBy({
-      UserId: userData[0].id,
+    const allDogs = await this.dogsRepository.find({
+      where: {
+        UserId: userData.id,
+      },
     });
 
     const allDogsData = allDogs.map((dog) => {
       return {
         id: dog.id,
         name: dog.name,
-        contentUrl: dog.fileUrl.length !== 0 ? JSON.parse(dog.fileUrl) : null,
+        contentUrl: dog.contentUrl.length !== 0 ? dog.contentUrl : null,
         introduce: dog.introduce,
         species: dog.species,
         weight: dog.weight,
@@ -127,9 +129,9 @@ export class ProfileService {
     const data = [
       {
         user: {
-          nickname: userData[0].nickname,
-          contentUrl: JSON.parse(userData[0].fileUrl),
-          introduce: userData[0].introduce,
+          nickname: userData.nickname,
+          contentUrl: userData.contentUrl,
+          introduce: userData.introduce,
           dogsCount: allDogs.length,
         },
       },
@@ -143,7 +145,7 @@ export class ProfileService {
     nickname: string,
     userId: number,
     files: Array<Express.Multer.File>,
-    data,
+    data: { introduce: string; changeNickname: string },
   ) {
     const userData = await this.usersRepository.findOne({
       where: { nickname: nickname },
@@ -156,12 +158,15 @@ export class ProfileService {
       throw new UnauthorizedException('수정 권한이 없습니다');
     }
 
-    const nicknameExist = await this.usersRepository.findOne({
-      where: { nickname: data.userNickname },
-    });
+    if (data.changeNickname === userData.nickname)
+      throw new BadRequestException('사용중인 닉네임과 같은 닉네임 입니다..');
 
-    if (nicknameExist && userData.nickname !== data.userNickname)
-      throw new ConflictException('이미 존재하는 닉네임 입니다.');
+    const userCheckRequestDto = new UserCheckRequestDto();
+    userCheckRequestDto.nickname = data.changeNickname;
+
+    await this.usersService.check({
+      ...userCheckRequestDto,
+    });
 
     //s3에 새로운 프로필 이미지 저장
     const category = 'user';
@@ -176,17 +181,17 @@ export class ProfileService {
       .createQueryBuilder()
       .update(Users)
       .set({
-        nickname: data.userNickname,
+        nickname: data.changeNickname,
         introduce: data.introduce,
-        fileUrl: !files[0] ? userData.fileUrl : JSON.stringify(contentUrl),
+        contentUrl: !files[0] ? userData.contentUrl : contentUrl[0],
       })
       .where('id=:userId', { userId: userId })
       .execute();
 
     return {
-      nickname: data.userNickname,
+      nickname: data.changeNickname,
       introduce: data.introduce,
-      contentUrl: !files[0] ? JSON.parse(userData.fileUrl) : contentUrl,
+      contentUrl: !files[0] ? JSON.parse(userData.contentUrl) : contentUrl,
     };
   }
 
@@ -214,7 +219,7 @@ export class ProfileService {
         .where('UserId = :userId', { userId: userId })
         .execute();
 
-      this.dogsRepository
+      await this.dogsRepository
         .createQueryBuilder()
         .update(Dogs)
         .set({ representative: true })
@@ -241,7 +246,7 @@ export class ProfileService {
         weight: data.weight,
         birthday: data.birthday,
         bringDate: data.bringDate,
-        fileUrl: !files[0] ? dogData.fileUrl : JSON.stringify(contentUrl),
+        contentUrl: !files[0] ? dogData.contentUrl : contentUrl[0],
       })
       .where('id= :id', { id: id })
       .execute();
@@ -254,7 +259,7 @@ export class ProfileService {
       weight: data.weight,
       birthday: data.birthday,
       bringDate: data.bringDate,
-      contentUrl: !files[0] ? JSON.parse(dogData.fileUrl) : contentUrl,
+      contentUrl: !files[0] ? dogData.contentUrl : contentUrl,
     };
   }
 }

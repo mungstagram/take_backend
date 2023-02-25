@@ -24,10 +24,10 @@ export class Dogs {
   @Column({ type: 'float' })
   weight: number;
 
-  @Column({ type: 'datetime' })
+  @Column({ type: 'date' })
   birthday: Date;
 
-  @Column({ type: 'datetime' })
+  @Column({ type: 'date' })
   bringDate: Date;
 
   @Column({ type: 'boolean' })
@@ -37,7 +37,7 @@ export class Dogs {
   representative: boolean;
 
   @Column({ type: 'text' })
-  fileUrl: string;
+  contentUrl: string;
 
   @Column({ type: 'text' })
   introduce: string;

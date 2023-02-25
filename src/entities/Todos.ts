@@ -39,7 +39,7 @@ export class Todos {
   // * Relation * /
 
   // *  PostLikes | M : 1 | Users
-  @ManyToOne(() => Users, (users) => users.Todos, {})
+  @ManyToOne(() => Users, (users) => users.Todos)
   @JoinColumn([{ name: 'UserId', referencedColumnName: 'id' }])
   User: Users;
 }

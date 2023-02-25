@@ -128,7 +128,7 @@ export class PostsController {
       },
     },
   })
-  @UseInterceptors(FilesInterceptor('images', 5))
+  @UseInterceptors(FilesInterceptor('files', 5))
   async updatePost(
     @Body() data: PostsCreateRequestsDto,
     @Param('postId') postId: number,

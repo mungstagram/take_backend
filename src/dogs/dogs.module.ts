@@ -1,26 +1,22 @@
-import { FileUrlService } from './../helper/get.file.url.helper';
+import { Files } from '../entities/Files';
 import { AWSService } from './../helper/fileupload.helper';
-import { UploadFiles, UploadFilesSchema } from './../models/UploadFiles';
-import { MongooseModule } from '@nestjs/mongoose';
 import { AuthModule } from './../auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
-import { Dogs } from './../entities/Dogs';
+import { Dogs } from '../entities/Dogs';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Module } from '@nestjs/common';
 import { DogsController } from './dogs.controller';
 import { DogsService } from './dogs.service';
+import postgresDataSource from 'dataSource';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
-    TypeOrmModule.forFeature([Dogs]),
+    TypeOrmModule.forFeature([Dogs, Files], postgresDataSource),
     AuthModule,
-    MongooseModule.forFeature([
-      { name: UploadFiles.name, schema: UploadFilesSchema },
-    ]),
   ],
   controllers: [DogsController],
-  providers: [DogsService, AWSService, FileUrlService],
+  providers: [DogsService, AWSService],
   exports: [DogsService],
 })
 export class DogsModule {}

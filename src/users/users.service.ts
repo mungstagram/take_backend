@@ -13,7 +13,7 @@ import bcrypt from 'bcrypt';
 @Injectable()
 export class UsersService {
   constructor(
-    @InjectRepository(Users)
+    @InjectRepository(Users, 'postgresql')
     private readonly usersRepository: Repository<Users>,
   ) {}
 
@@ -46,7 +46,7 @@ export class UsersService {
       nickname: data.nickname,
       password: hashedPassword,
       provider: data.provider,
-      fileUrl: data.profile_image,
+      contentUrl: data.profile_image,
     });
 
     return 'Created';
@@ -65,7 +65,7 @@ export class UsersService {
     if (!nicknameOrEmail)
       throw new BadRequestException('올바르지 않은 데이터 형식입니다.');
 
-    const nicknameRegexp = /^[a-zA-Z0-9]{3,}$/g;
+    const nicknameRegexp = /^[a-zA-Z0-9]{3,15}$/g;
     const emailRegexp =
       /^([\w\.\_\-])*[a-zA-Z0-9]+([\w\.\_\-])*([a-zA-Z0-9])+([\w\.\_\-])+@([a-zA-Z0-9]+\.)+[a-zA-Z0-9]{2,8}$/i;
 
@@ -104,7 +104,9 @@ export class UsersService {
     return {
       nickname: userData.nickname,
       introduce: userData.introduce ? userData.introduce : null,
-      contentUrl: userData.fileUrl ? JSON.parse(userData.fileUrl)[0] : null,
+      contentUrl: userData.contentUrl
+        ? JSON.parse(userData.contentUrl)[0]
+        : null,
       postsCount: userData['postsCount'],
       dogsCount: userData['dogsCount'],
     };
