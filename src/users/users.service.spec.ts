@@ -47,7 +47,7 @@ describe('UsersService', () => {
       providers: [
         UsersService,
         {
-          provide: getRepositoryToken(Users),
+          provide: getRepositoryToken(Users, 'postgresql'),
           useClass: MockUserRepository,
         },
       ],
