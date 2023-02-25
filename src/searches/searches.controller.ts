@@ -7,7 +7,12 @@ export class SearchesController {
   constructor(private readonly searchesService: SearchesService) {}
 
   @ApiOperation({ summary: '유저 검색 api' })
-  @ApiQuery({ name: 'category', type: 'string', required: true })
+  @ApiQuery({
+    name: 'category',
+    type: 'string',
+    required: true,
+    example: 'users',
+  })
   @ApiQuery({ name: 'search', type: 'string', required: true })
   @Get()
   @HttpCode(200)

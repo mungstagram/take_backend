@@ -125,6 +125,7 @@ export class PostsService {
         'p.title',
         'p.content',
         'p.category',
+        'u.fileUrl',
         'u.nickname',
         'p.createdAt',
         'pl',
@@ -156,6 +157,7 @@ export class PostsService {
         return {
           postId: post.id,
           nickname: post.User.nickname,
+          profileUrl: JSON.parse(post.User.contentUrl),
           title: post.title,
           content: post.content,
           contentUrl: contentUrl,
@@ -195,6 +197,7 @@ export class PostsService {
           'p.content',
           'p.category',
           'u.nickname',
+          'u.fileUrl',
           'p.createdAt',
           'pl',
           'f.contentUrl',
@@ -207,6 +210,10 @@ export class PostsService {
         .loadRelationCountAndMap('p.PostLikes', 'p.PostLikes')
         .where('p.id=:postId', { postId: postId })
         .getOne();
+
+      if (!onePost) {
+        throw new BadRequestException('해당 게시물이 없습니다.');
+      }
 
       const newTimeGap = timeGap(onePost.createdAt);
 
@@ -221,7 +228,7 @@ export class PostsService {
 
       const sortedComments = onePost.Comments?.sort((a, b) => {
         if (onePost.Comments.length === 0) {
-          return 0;
+          return undefined;
         }
         if (
           typeof a.createdAt.getTime() === 'number' &&
@@ -234,6 +241,7 @@ export class PostsService {
           id: comment.id,
           comment: comment.comment,
           userId: comment.UserId,
+          profileUrl: comment.User.contentUrl,
           createdAt: timeGap(comment.createdAt),
         };
       });
@@ -241,6 +249,7 @@ export class PostsService {
       return {
         postid: onePost.id,
         nickname: onePost.User.nickname,
+        profileUrl: onePost.User.contentUrl,
         title: onePost.title,
         content: onePost.content,
         contentUrl: contentUrl,
