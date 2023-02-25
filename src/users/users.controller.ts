@@ -36,6 +36,7 @@ export class UsersController {
   @HttpCode(201)
   @Post('signup')
   async signup(@Body() data: SignupReqeustDto) {
+    data.provider = data.provider ? data.provider : 'local';
     return await this.usersService.signup(data);
   }
 
