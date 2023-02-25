@@ -1,27 +1,25 @@
-import { FileUrlService } from './../helper/get.file.url.helper';
+import { Files } from '../entities/Files';
 import { AWSService } from './../helper/fileupload.helper';
-import { MongooseModule } from '@nestjs/mongoose';
 import { ProfileService } from './profile.service';
 import { ProfileController } from './profile.controller';
 import { AuthModule } from './../auth/auth.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Dogs } from './../entities/Dogs';
-import { Users } from './../entities/Users';
+import { Dogs } from '../entities/Dogs';
+import { Users } from '../entities/Users';
 import { ConfigModule } from '@nestjs/config';
 import { Module } from '@nestjs/common';
-import { UploadFiles, UploadFilesSchema } from './../models/UploadFiles';
+import { UsersModule } from '../users/users.module';
+import postgresDataSource from 'dataSource';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
-    TypeOrmModule.forFeature([Users, Dogs]),
+    TypeOrmModule.forFeature([Users, Dogs, Files], postgresDataSource),
     AuthModule,
-    MongooseModule.forFeature([
-      { name: UploadFiles.name, schema: UploadFilesSchema },
-    ]),
+    UsersModule,
   ],
   controllers: [ProfileController],
-  providers: [ProfileService, AWSService, FileUrlService],
+  providers: [ProfileService, AWSService],
   exports: [ProfileService],
 })
 export class ProfileModule {}

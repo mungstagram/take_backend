@@ -1,4 +1,3 @@
-import { UploadFiles, UploadFilesSchema } from './models/UploadFiles';
 import { DogsModule } from './dogs/dogs.module';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -6,39 +5,52 @@ import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
-import { Comments } from './entities/Comments';
-import { CommentLikes } from './entities/CommentsLikes';
-import { Dogs } from './entities/Dogs';
-import { PostLikes } from './entities/PostLikes';
-import { Posts } from './entities/Posts';
-import { Tokens } from './entities/Tokens';
-import { Users } from './entities/Users';
 import { UsersModule } from './users/users.module';
 import { PostsModule } from './posts/posts.module';
 import { AuthModule } from './auth/auth.module';
 import { CommentsModule } from './comments/comments.module';
 import { TodosModule } from './todos/todos.module';
-import { MongooseModule, MongooseModuleOptions } from '@nestjs/mongoose';
 import { EventsModule } from './events/events.module';
 import { DmsModule } from './dms/dms.module';
-import mongoose from 'mongoose';
 import { ProfileModule } from './profile/profile.module';
 import { SearchesModule } from './searches/searches.module';
+import { Users } from './entities/Users';
+import { Todos } from './entities/Todos';
+import { Tokens } from './entities/Tokens';
+import { Posts } from './entities/Posts';
+import { PostLikes } from './entities/PostLikes';
+import { PostFiles } from './entities/PostFiles';
+import { Files } from './entities/Files';
+import { Comments } from './entities/Comments';
+import { Dogs } from './entities/Dogs';
+import { Chattings } from './entities/mongo/Chattings';
+import { ChatRooms } from './entities/mongo/ChatRoom';
 
-const mysqlOptions = {
+const postgresOptions = {
   useFactory: async (
     configService: ConfigService,
   ): Promise<TypeOrmModuleOptions> => ({
-    type: 'mysql',
-    host: configService.get('MYSQL_DB_HOST'),
-    port: 3306,
-    username: configService.get('MYSQL_DB_USERNAME'),
-    password: configService.get('MYSQL_DB_PASSWORD'),
+    type: 'postgres',
+    host: configService.get('POSTGRES_DB_HOST'),
+    port: 5432,
+    username: configService.get('POSTGRES_DB_USERNAME'),
+    password: configService.get('POSTGRES_DB_PASSWORD'),
     database:
-      configService.get('MYSQL_DB_NAME') + '_' + configService.get('NODE_ENV'),
-    entities: [Users, Posts, Tokens, PostLikes, Dogs, Comments, CommentLikes],
-    migrations: [__dirname + '/src/migrations/*.ts'],
-    charset: 'utf8mb4_bin',
+      configService.get('POSTGRES_DB_NAME') +
+      '_' +
+      configService.get('NODE_ENV'),
+    entities: [
+      Users,
+      Todos,
+      Tokens,
+      Posts,
+      PostLikes,
+      PostFiles,
+      Files,
+      Comments,
+      Dogs,
+    ],
+    migrations: ['src/migrations/**/*.ts'],
     synchronize: false,
     autoLoadEntities: true,
     keepConnectionAlive: true,
@@ -50,9 +62,14 @@ const mysqlOptions = {
 const mongodbOptions = {
   useFactory: async (
     configService: ConfigService,
-  ): Promise<MongooseModuleOptions> => ({
-    uri: configService.get('MONGO_DB_URI'),
-    dbName: 'chattings',
+  ): Promise<TypeOrmModuleOptions> => ({
+    type: 'mongodb',
+    port: 27017,
+    url: configService.get('MONGO_DB_URI'),
+    synchronize: false,
+    useNewUrlParser: true,
+    entities: [Chattings, ChatRooms],
+    database: 'chattings',
   }),
   inject: [ConfigService],
 };
@@ -60,8 +77,8 @@ const mongodbOptions = {
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    TypeOrmModule.forRootAsync(mysqlOptions),
-    MongooseModule.forRootAsync(mongodbOptions),
+    TypeOrmModule.forRootAsync({ ...postgresOptions, name: 'postgresql' }),
+    TypeOrmModule.forRootAsync({ ...mongodbOptions, name: 'mongodb' }),
     UsersModule,
     PostsModule,
     AuthModule,
@@ -71,12 +88,6 @@ const mongodbOptions = {
     EventsModule,
     DmsModule,
     ProfileModule,
-    MongooseModule.forFeature([
-      {
-        name: UploadFiles.name,
-        schema: UploadFilesSchema,
-      },
-    ]),
     SearchesModule,
   ],
   controllers: [AppController],
@@ -84,8 +95,6 @@ const mongodbOptions = {
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    const DEBUG = process.env.NODE_ENV === 'dev' ? true : false;
     consumer.apply(LoggerMiddleware).forRoutes('*');
-    mongoose.set('debug', DEBUG);
   }
 }

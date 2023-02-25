@@ -10,7 +10,7 @@ import { CommentUpdateRequestDto } from './dtos/comment.update.dto';
 @Injectable()
 export class CommentsService {
   constructor(
-    @InjectRepository(Comments)
+    @InjectRepository(Comments, 'postgresql')
     private readonly commentsRepository: Repository<Comments>,
     private readonly usersService: UsersService,
   ) {}
