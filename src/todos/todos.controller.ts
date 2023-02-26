@@ -53,6 +53,7 @@ export class TodosController {
     @GetPayload() payload: JwtPayload,
   ) {
     todoCreateRequestDto.UserId = payload.sub;
+    todoCreateRequestDto.done = false;
     return await this.todosService.createTodo(todoCreateRequestDto);
   }
 

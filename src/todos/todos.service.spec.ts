@@ -73,7 +73,7 @@ describe('TodosService', () => {
 
   it('createTodo는 DB에 데이터를 삽입하고 삽입한 데이터의 id를 반환한다.', async () => {
     const id = 4;
-    const insertData = { id, content: 'Mock4', UserId: 3 };
+    const insertData = { id, content: 'Mock4', UserId: 3, done: false };
     expect(await service.createTodo(insertData)).toBeTruthy();
   });
 
