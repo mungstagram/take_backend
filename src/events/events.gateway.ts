@@ -37,7 +37,7 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async tokenValidate(token: string) {
     try {
       const data = await this.jwtService.verifyAsync(token, {
-        secret: process.env.JWT_REFRESH_SECRET,
+        secret: process.env.JWT_ACCESS_SECRET,
       });
       return data;
     } catch (err) {
@@ -48,7 +48,6 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleConnection(@ConnectedSocket() socket: Socket) {
     const token = socket.handshake.headers.authorization.split(' ')[1];
     const userData: JwtPayload = await this.tokenValidate(token);
-    const userId = userData.sub;
 
     Logger.log(socket.nsp.name, 'Connected');
 
@@ -65,14 +64,28 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const usersNickname = await this.usersRepository
         .createQueryBuilder('u')
         .select(['u.id', 'u.nickname'])
-        .where('id = :user0', { user0: chatRoomUsers.users[0] })
-        .orWhere('id = :user1', { user1: chatRoomUsers.users[1] })
+        .where('u.id = :user0', { user0: chatRoomUsers.users[0].id })
+        .orWhere('u.id = :user1', { user1: chatRoomUsers.users[1].id })
         .getMany();
 
       users.push(usersNickname[0]);
       users.push(usersNickname[1]);
     }
 
+    const chatRoom = await this.chatRoomsRepository.findOne({
+      where: { roomId: socket.nsp.name.substring(4, socket.nsp.name.length) },
+    });
+
+    const myUser = { id: userData.sub, exitedAt: null };
+    const otherUser =
+      chatRoom.users[0].id === myUser.id
+        ? { id: chatRoom.users[1].id, exitedAt: chatRoom.users[1].exitedAt }
+        : { id: chatRoom.users[0].id, exitedAt: chatRoom.users[0].exitedAt };
+
+    const updateUsers =
+      myUser.id < otherUser.id ? [myUser, otherUser] : [otherUser, myUser];
+
+    await this.chatRoomsRepository.update(chatRoom.id, { users: updateUsers });
     const getMessages = await this.dmsService.joinChatRoom(
       socket.nsp.name.substring(4, socket.nsp.name.length),
     );
@@ -80,8 +93,24 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
     socket.emit('getMessages', getMessages);
   }
 
-  handleDisconnect(@ConnectedSocket() socket: Socket) {
-    Logger.log(socket.nsp.name, 'DisConnect');
+  async handleDisconnect(@ConnectedSocket() socket: Socket) {
+    const token = socket.handshake.headers.authorization.split(' ')[1];
+    const userData: JwtPayload = await this.tokenValidate(token);
+
+    const chatRoom = await this.chatRoomsRepository.findOne({
+      where: { roomId: socket.nsp.name.substring(4, socket.nsp.name.length) },
+    });
+
+    const myUser = { id: userData.sub, exitedAt: new Date() };
+    const otherUser =
+      chatRoom.users[0].id === myUser.id
+        ? { id: chatRoom.users[1].id, exitedAt: chatRoom.users[1].exitedAt }
+        : { id: chatRoom.users[0].id, exitedAt: chatRoom.users[0].exitedAt };
+
+    const updateUsers =
+      myUser.id < otherUser.id ? [myUser, otherUser] : [otherUser, myUser];
+
+    await this.chatRoomsRepository.update(chatRoom.id, { users: updateUsers });
   }
 
   @SubscribeMessage('dm')
@@ -125,12 +154,33 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 }
 
-@WebSocketGateway(3001, { namespace: /DMList\/.[0-9]/ })
+@WebSocketGateway(3001, { namespace: '/DMList' })
 export class ChatRoomsGateway implements OnGatewayConnection {
-  @SubscribeMessage('test')
+  constructor(
+    @InjectRepository(ChatRooms, 'mongodb')
+    private readonly chatRoomsRepository: Repository<ChatRooms>,
+    private readonly jwtService: JwtService,
+  ) {}
+
+  async tokenValidate(token: string) {
+    try {
+      const data = await this.jwtService.verifyAsync(token, {
+        secret: process.env.JWT_ACCESS_SECRET,
+      });
+      return data;
+    } catch (err) {
+      throw new BadRequestException('유효하지 않은 토큰입니다.');
+    }
+  }
+
   async handleConnection(@ConnectedSocket() socket: Socket) {
-    Logger.log(socket.nsp.name, 'Connected');
-    socket.broadcast.emit('test', '잘 도착 하는지 모르겠네요');
+    const token = socket.handshake.headers.authorization.split(' ')[1];
+    const userData: JwtPayload = await this.tokenValidate(token);
+
+    const userChatRoomList = await this.chatRoomsRepository.find({
+      where: { users: { $in: [{ id: userData.sub }] } },
+    });
+    console.log(userChatRoomList);
   }
 }
 @WebSocketGateway(3001, { namespace: /test\/.+/ })
