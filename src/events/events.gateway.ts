@@ -16,7 +16,7 @@ import { Socket, Server } from 'socket.io';
 import { Chattings } from '../entities/mongo/Chattings';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Users } from '../entities/Users';
-import { Repository } from 'typeorm';
+import { In, MongoRepository, Repository } from 'typeorm';
 
 const users: object[] = [];
 
@@ -58,8 +58,8 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
         },
       });
 
-      if (!chatRoomUsers)
-        throw new BadRequestException('존재하지 않는 채팅방 입니다.');
+      // if (!chatRoomUsers)
+      //   throw new BadRequestException('존재하지 않는 채팅방 입니다.');
 
       const usersNickname = await this.usersRepository
         .createQueryBuilder('u')
@@ -122,8 +122,6 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const userData: JwtPayload = await this.tokenValidate(token);
     const userId = userData.sub;
 
-    console.log(users);
-
     const sender =
       userId === users[0]['id']
         ? { id: users[0]['id'], nickname: users[0]['nickname'] }
@@ -159,6 +157,8 @@ export class ChatRoomsGateway implements OnGatewayConnection {
   constructor(
     @InjectRepository(ChatRooms, 'mongodb')
     private readonly chatRoomsRepository: Repository<ChatRooms>,
+    @InjectRepository(Chattings, 'mongodb')
+    private readonly chattingsRepository: MongoRepository<Chattings>,
     private readonly jwtService: JwtService,
   ) {}
 
@@ -178,9 +178,47 @@ export class ChatRoomsGateway implements OnGatewayConnection {
     const userData: JwtPayload = await this.tokenValidate(token);
 
     const userChatRoomList = await this.chatRoomsRepository.find({
-      where: { users: { $in: [{ id: userData.sub }] } },
+      where: { users: { $elemMatch: { id: userData.sub } } },
     });
-    console.log(userChatRoomList);
+
+    const arrayChatRoomId = userChatRoomList.map((room) => room.roomId);
+
+    const lastChats = await this.chattingsRepository
+      .aggregate([
+        {
+          $lookup: {
+            from: 'chatRooms',
+            localField: 'RoomId',
+            foreignField: 'roomId',
+            as: 'room',
+          },
+        },
+        {
+          $match: {
+            'room.roomId': {
+              $in: arrayChatRoomId,
+            },
+          },
+        },
+        {
+          $sort: {
+            createdAt: -1,
+          },
+        },
+        {
+          $group: {
+            _id: '$RoomId',
+            lastChat: {
+              $first: '$$ROOT',
+            },
+          },
+        },
+      ])
+      .toArray();
+
+    socket.emit('DMList', lastChats);
+
+    // socket.emit('DMList', userChatRoomList);
   }
 }
 @WebSocketGateway(3001, { namespace: /test\/.+/ })
