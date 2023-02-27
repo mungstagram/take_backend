@@ -1,3 +1,4 @@
+import { ChatRooms } from './../entities/mongo/ChatRoom';
 import { Users } from '../entities/Users';
 import { timeGap } from '../helper/timegap.helper';
 import { Injectable } from '@nestjs/common';
@@ -6,7 +7,7 @@ import { UpdateDmDto } from './dto/update-dm.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Chattings } from '../entities/mongo/Chattings';
-import { ChatRooms } from '../entities/mongo/ChatRoom';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class DmsService {
@@ -30,12 +31,16 @@ export class DmsService {
     });
 
     if (!chatRoomsExist) {
-      const newChatRoom = new ChatRooms();
-      newChatRoom.users = users;
-      newChatRoom.createdAt = new Date();
-      newChatRoom.updatedAt = new Date();
+      const newRoom = new ChatRooms();
+      newRoom.users = users;
+      newRoom.createdAt = new Date();
+      newRoom.updatedAt = new Date();
+      newRoom.roomId = randomUUID().replace(/-/g, '');
+      newRoom.exitedAt = [new Date(), new Date()];
 
-      const createdChatRooms = this.chatRoomsRepository.save(newChatRoom);
+      console.log('uuid', newRoom.roomId);
+
+      const createdChatRooms = this.chatRoomsRepository.save(newRoom);
 
       return createdChatRooms;
     }
@@ -46,29 +51,30 @@ export class DmsService {
     return `This action returns all dms`;
   }
 
-  async joinChatRoom(chatRoomId: string) {
+  async joinChatRoom(roomId: string) {
     const messages = await this.chattingsRepository.find({
-      where: { RoomId: chatRoomId },
+      where: { RoomId: roomId },
     });
-    const chatRoom = await this.chatRoomsRepository.findOne({
+
+    const room = await this.chatRoomsRepository.findOne({
       where: {
-        id: chatRoomId,
+        roomId: roomId,
       },
     });
 
     const users = await this.usersRepository
       .createQueryBuilder('u')
       .select(['u.id', 'u.nickname'])
-      .where('id = :user0', { user0: chatRoom.users[0] })
-      .orWhere('id = :user1', { user1: chatRoom.users[1] })
+      .where('id = :user0', { user0: room.users[0] })
+      .orWhere('id = :user1', { user1: room.users[1] })
       .getMany();
 
-    messages.sort((newChatRoom, b) => {
+    messages.sort((a, b) => {
       if (
-        typeof newChatRoom['createdAt'].getTime() === 'number' &&
+        typeof a['createdAt'].getTime() === 'number' &&
         typeof b['createdAt'].getTime() === 'number'
       ) {
-        return b['createdAt'].getTime() - newChatRoom['createdAt'].getTime();
+        return b['createdAt'].getTime() - a['createdAt'].getTime();
       }
     });
 
@@ -84,18 +90,25 @@ export class DmsService {
             ? { id: users[0]['id'], nickname: users[0]['nickname'] }
             : { id: users[1]['id'], nickname: users[1]['nickname'] },
         contentUrl: v.contentUrl,
-        timeGap: timeGap(v['createdAt']),
+        createdAt: v.createdAt,
       };
     });
 
     return returnedMessages;
   }
 
+  async getChatRoomList(userId: number) {
+    const userChatRoomList = await this.chatRoomsRepository.find({
+      where: { users: { $in: [userId] } },
+    });
+    return userChatRoomList;
+  }
+
   update(id: number, updateDmDto: UpdateDmDto) {
-    return `This action updates newChatRoom #${id} dm`;
+    return `This action updates newRoom #${id} dm`;
   }
 
   remove(id: number) {
-    return `This action removes newChatRoom #${id} dm`;
+    return `This action removes newRoom #${id} dm`;
   }
 }

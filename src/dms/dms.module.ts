@@ -15,5 +15,6 @@ import mongoDataSource from 'mongoDataSource';
   ],
   controllers: [DmsController],
   providers: [DmsService],
+  exports: [DmsService],
 })
 export class DmsModule {}

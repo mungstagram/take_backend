@@ -1,3 +1,4 @@
+import { ExceptionFilter } from '@nestjs/common';
 import {
   Column,
   CreateDateColumn,
@@ -10,8 +11,14 @@ export class ChatRooms {
   @ObjectIdColumn()
   id: string;
 
+  @Column({ type: 'text' })
+  roomId: string;
+
   @Column({ type: 'array' })
   users: any;
+
+  @Column({ type: 'array' })
+  exitedAt: any;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
