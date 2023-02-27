@@ -1,8 +1,6 @@
-import { JwtPayload } from './../auth/jwt/jwt.payload.dto';
-import { SocketIOAuthGuard } from './socket.jwt.guard';
 import { DmsService } from './../dms/dms.service';
 import { ChatRooms } from '../entities/mongo/ChatRoom';
-import { Logger, BadRequestException, UseGuards } from '@nestjs/common';
+import { Logger, BadRequestException } from '@nestjs/common';
 import {
   WebSocketGateway,
   WebSocketServer,
@@ -17,11 +15,10 @@ import { Chattings } from '../entities/mongo/Chattings';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Users } from '../entities/Users';
 import { Repository } from 'typeorm';
-import { GetPayload } from 'src/common/dacorators/get.payload.decorator';
 
 const users: object[] = [];
 
-@WebSocketGateway(80, { namespace: /dm\/.[a-zA-Z0-9]/g })
+@WebSocketGateway(3001, { namespace: /dm\/.[a-zA-Z0-9]/g })
 export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     @InjectRepository(Chattings, 'mongodb')
@@ -107,7 +104,7 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 }
 
-@WebSocketGateway(80, { namespace: /DMList\/.[0-9]/ })
+@WebSocketGateway(3001, { namespace: /DMList\/.[0-9]/ })
 export class ChatRoomsGateway implements OnGatewayConnection {
   @SubscribeMessage('test')
   async handleConnection(@ConnectedSocket() socket: Socket) {
@@ -115,7 +112,7 @@ export class ChatRoomsGateway implements OnGatewayConnection {
     socket.broadcast.emit('test', '잘 도착 하는지 모르겠네요');
   }
 }
-@WebSocketGateway(80, { namespace: /test\/.+/ })
+@WebSocketGateway(3001, { namespace: /test\/.+/ })
 export class TestGateWay implements OnGatewayConnection, OnGatewayDisconnect {
   async handleConnection(@ConnectedSocket() socket: Socket) {
     socket.emit('testConnect', `연결 성공 Namespace : ${socket.nsp.name}`);
