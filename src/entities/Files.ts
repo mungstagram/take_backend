@@ -7,9 +7,12 @@ import {
   UpdateDateColumn,
   ManyToMany,
   OneToMany,
+  OneToOne,
 } from 'typeorm';
+import { Dogs } from './Dogs';
 import { PostFiles } from './PostFiles';
 import { Posts } from './Posts';
+import { Users } from './Users';
 
 @Entity({ name: 'files' })
 export class Files {
@@ -34,4 +37,12 @@ export class Files {
   // *  Files | 1 : M | PostFiles
   @OneToMany(() => PostFiles, (postFiles) => postFiles.File)
   PostFiles: PostFiles[];
+
+  // * Files | 1 : 1 | Dogs
+  @OneToMany(() => Dogs, (dogs) => dogs.File)
+  Dog: Dogs;
+
+  // * Files | 1 : 1 | Dogs
+  @OneToMany(() => Users, (users) => users.File)
+  User: Users;
 }

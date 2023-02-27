@@ -4,7 +4,10 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
+  JoinColumn,
+  ManyToOne,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -14,6 +17,7 @@ import { Tokens } from './Tokens';
 import { PostLikes } from './PostLikes';
 import { CommentLikes } from './CommentsLikes';
 import { Todos } from './Todos';
+import { Files } from './Files';
 
 @Entity({ name: 'users' })
 export class Users {
@@ -35,9 +39,6 @@ export class Users {
   @Column({ type: 'text', nullable: true })
   introduce: string;
 
-  @Column({ type: 'text', nullable: true })
-  contentUrl: string;
-
   @Column({ type: 'varchar', length: 6, nullable: true })
   provider: string;
 
@@ -51,6 +52,15 @@ export class Users {
   deletedAt: Date | null;
 
   // * Relation * /
+
+  // ForignKey
+  @Column({ type: 'int', nullable: true })
+  FileId: number;
+
+  // * Users | 1 : 1 | Files
+  @ManyToOne(() => Files, (files) => files.User)
+  @JoinColumn([{ name: 'FileId', referencedColumnName: 'id' }])
+  File: Files[];
 
   // *  Users | 1 : M | Posts
   @OneToMany(() => Posts, (posts) => posts.User)

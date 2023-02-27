@@ -32,6 +32,7 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() public server: Server;
 
   async handleConnection(@ConnectedSocket() socket: Socket) {
+    console.log(socket.handshake.headers);
     Logger.log(socket.nsp.name, 'Connected');
     // console.log(socket.handshake.headers.authorization);
 
@@ -41,8 +42,6 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
           roomId: socket.nsp.name.substring(4, socket.nsp.name.length),
         },
       });
-
-      console.log(chatRoomUsers);
 
       if (!chatRoomUsers)
         throw new BadRequestException('존재하지 않는 채팅방 입니다.');

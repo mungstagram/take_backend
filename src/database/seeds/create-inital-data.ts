@@ -8,6 +8,7 @@ import { Files } from '../../entities/Files';
 import { PostLikes } from '../../entities/PostLikes';
 import { Posts } from '../../entities/Posts';
 import { Users } from '../../entities/Users';
+import { PostFiles } from '../../entities/PostFiles';
 
 export default class Seeding implements Seeder {
   public async run(
@@ -15,6 +16,28 @@ export default class Seeding implements Seeder {
     factoryManaget: SeederFactoryManager,
   ): Promise<any> {
     const logger = new Logger('Seed');
+    // * Files
+    const files = dataSource.getRepository(Files);
+    await files.insert([
+      {
+        id: 1,
+        contentUrl:
+          'https://spartabecool.s3.amazonaws.com/image/1676984268618_image3.png',
+        hash: 'a8cf3ae574b75e5fe0080953a11ee4055a409380c9041817355e95053417e462',
+      },
+      {
+        id: 2,
+        contentUrl:
+          'https://spartabecool.s3.amazonaws.com/image/1676984268616_image1.png',
+        hash: '8e8c4720667a4d80b9fa63e8c875cbcd8f64adb6ea4b55b428e7bebcde417978',
+      },
+      {
+        id: 3,
+        contentUrl:
+          'https://spartabecool.s3.amazonaws.com/image/1676984268601_image2.png',
+        hash: '9522115f20f8ec50c7a48985461a62f86fa076d21cca99dd93f2a6051030fee2',
+      },
+    ]);
     // * Users
     const users = dataSource.getRepository(Users);
     await users.insert([
@@ -28,9 +51,7 @@ export default class Seeding implements Seeder {
         name: 'Seeder1',
         introduce: 'seed1 introduce',
         provider: 'local',
-        contentUrl: JSON.stringify([
-          'https://spartabecool.s3.amazonaws.com/image/1676984268618_image3.png',
-        ]),
+        FileId: 1,
       },
       {
         id: 2,
@@ -41,9 +62,7 @@ export default class Seeding implements Seeder {
         name: 'Seeder2',
         introduce: 'seed2 introduce',
         provider: 'kakao',
-        contentUrl: JSON.stringify([
-          'https://spartabecool.s3.amazonaws.com/image/1676984268618_image3.png',
-        ]),
+        FileId: 2,
       },
       {
         id: 3,
@@ -54,9 +73,7 @@ export default class Seeding implements Seeder {
         name: 'Seeder3',
         introduce: 'seed3 introduce',
         provider: 'google',
-        contentUrl: JSON.stringify([
-          'https://spartabecool.s3.amazonaws.com/image/1676984268618_image3.png',
-        ]),
+        FileId: 3,
       },
     ]);
     logger.log('User Seeding Complete');
@@ -135,9 +152,7 @@ export default class Seeding implements Seeder {
         bringDate: '2013-06-08',
         gender: true,
         representative: true,
-        contentUrl: JSON.stringify([
-          'https://www.google.com/url?sa=i&url=https%3A%2F%2Fpixabay.com%2Fko%2Fphotos%2Fsearch%2F%25EC%2595%25A0%25EA%25B2%25AC%2F&psig=AOvVaw2_FcU4LAgQiQCAUgaaqtHb&ust=1675620320391000&source=images&cd=vfe&ved=0CA8QjRxqFwoTCIDBlaG6_PwCFQAAAAAdAAAAABAE',
-        ]),
+        FileId: 1,
         introduce: '갱얼쥐1의 자기소개',
       },
       {
@@ -150,9 +165,7 @@ export default class Seeding implements Seeder {
         bringDate: '2019-09-08',
         gender: true,
         representative: false,
-        contentUrl: JSON.stringify([
-          'https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.shutterstock.com%2Fko%2Fsearch%2F%25EA%25B0%2595%25EC%2595%2584%25EC%25A7%2580&psig=AOvVaw2_FcU4LAgQiQCAUgaaqtHb&ust=1675620320391000&source=images&cd=vfe&ved=0CA8QjRxqFwoTCIDBlaG6_PwCFQAAAAAdAAAAABAw',
-        ]),
+        FileId: 2,
         introduce: '갱얼쥐1-1의 자기소개',
       },
       {
@@ -165,9 +178,7 @@ export default class Seeding implements Seeder {
         bringDate: '2020-08-08',
         gender: true,
         representative: true,
-        contentUrl: JSON.stringify([
-          'https://www.google.com/url?sa=i&url=https%3A%2F%2Fkr.freepik.com%2Fphotos%2F%25EA%25B0%2595%25EC%2595%2584%25EC%25A7%2580&psig=AOvVaw2_FcU4LAgQiQCAUgaaqtHb&ust=1675620320391000&source=images&cd=vfe&ved=0CA8QjRxqFwoTCIDBlaG6_PwCFQAAAAAdAAAAABAY',
-        ]),
+        FileId: 3,
         introduce: '갱얼쥐2의 자기소개',
       },
       {
@@ -180,9 +191,7 @@ export default class Seeding implements Seeder {
         bringDate: '2021-03-08',
         gender: true,
         representative: true,
-        contentUrl: JSON.stringify([
-          'https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.pexels.com%2Fko-kr%2Fsearch%2F%25EA%25B0%2595%25EC%2595%2584%25EC%25A7%2580%2F&psig=AOvVaw2_FcU4LAgQiQCAUgaaqtHb&ust=1675620320391000&source=images&cd=vfe&ved=0CA8QjRxqFwoTCIDBlaG6_PwCFQAAAAAdAAAAABAo',
-        ]),
+        FileId: 1,
         introduce: '갱얼쥐3의 자기소개',
       },
     ]);
@@ -260,26 +269,43 @@ export default class Seeding implements Seeder {
     ]);
     logger.log('CommentLikes Seeding Complete');
 
-    // * Files
-    const files = dataSource.getRepository(Files);
-    await files.insert([
+    const postFiles = dataSource.getRepository(PostFiles);
+    await postFiles.insert([
       {
-        id: 1,
-        contentUrl:
-          'https://spartabecool.s3.amazonaws.com/image/1676984268618_image3.png',
-        hash: 'a8cf3ae574b75e5fe0080953a11ee4055a409380c9041817355e95053417e462',
+        PostId: 1,
+        FileId: 1,
       },
       {
-        id: 1,
-        contentUrl:
-          'https://spartabecool.s3.amazonaws.com/image/1676984268616_image1.png',
-        hash: '8e8c4720667a4d80b9fa63e8c875cbcd8f64adb6ea4b55b428e7bebcde417978',
+        PostId: 1,
+        FileId: 2,
       },
       {
-        id: 1,
-        contentUrl:
-          'https://spartabecool.s3.amazonaws.com/image/1676984268601_image2.png',
-        hash: '9522115f20f8ec50c7a48985461a62f86fa076d21cca99dd93f2a6051030fee2',
+        PostId: 1,
+        FileId: 3,
+      },
+      {
+        PostId: 2,
+        FileId: 1,
+      },
+      {
+        PostId: 2,
+        FileId: 2,
+      },
+      {
+        PostId: 2,
+        FileId: 3,
+      },
+      {
+        PostId: 3,
+        FileId: 1,
+      },
+      {
+        PostId: 3,
+        FileId: 3,
+      },
+      {
+        PostId: 3,
+        FileId: 2,
       },
     ]);
   }

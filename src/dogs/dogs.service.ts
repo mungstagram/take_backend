@@ -1,3 +1,4 @@
+import { Files } from 'src/entities/Files';
 import { AWSService } from './../helper/fileupload.helper';
 import { DogCreateRequestDto } from './dtos/dog.request.dto';
 import { Injectable } from '@nestjs/common';
@@ -10,6 +11,8 @@ export class DogsService {
   constructor(
     @InjectRepository(Dogs, 'postgresql')
     private readonly dogsRepository: Repository<Dogs>,
+    @InjectRepository(Files, 'postgresql')
+    private readonly filesRepository: Repository<Files>,
     private readonly awsService: AWSService,
   ) {}
 
@@ -23,10 +26,6 @@ export class DogsService {
     const category = 'dog';
     const dogImage = await this.awsService.fileUploads(files, category);
 
-    const contentUrl = dogImage.map((v) => {
-      return v.contentUrl;
-    });
-
     //유저에게 강아지가 있는지 확인 후에 첫번째 강아지는 대표강아지 지정
     const dogExist = await this.dogsRepository.findOne({
       where: { UserId: userId },
@@ -35,8 +34,12 @@ export class DogsService {
     const representative = !dogExist ? true : false;
     const dog = await this.dogsRepository.insert({
       representative: representative,
-      contentUrl: contentUrl[0],
+      FileId: dogImage[0].id,
       ...dogCreateRequestDto,
+    });
+
+    const contentUrl = await this.filesRepository.findOne({
+      where: { id: dogImage[0].id },
     });
 
     return {
@@ -47,7 +50,7 @@ export class DogsService {
       weight: dogCreateRequestDto.weight,
       birthday: dogCreateRequestDto.birthday,
       bringDate: dogCreateRequestDto.bringDate,
-      contentUrl: contentUrl[0],
+      contentUrl: contentUrl,
     };
   }
 }

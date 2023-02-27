@@ -1,7 +1,7 @@
 import { Users } from '../entities/Users';
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Like, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class SearchesService {
@@ -11,16 +11,19 @@ export class SearchesService {
   ) {}
   async search(query: { category: string; search: string }) {
     if (query.category === 'users') {
-      const searchedData = await this.usersRepository.find({
-        where: { nickname: Like(`%${query.search}%`) },
-      });
+      const searchedData = await this.usersRepository
+        .createQueryBuilder('u')
+        .select(['u.id', 'u.nickname', 'u.introduce', 'uf.contentUrl'])
+        .where('u.nickname LIKE :nickname', { nickname: `%${query.search}%` })
+        .leftJoin('u.File', 'uf')
+        .getMany();
 
       const data = searchedData.map((user) => {
         return {
           userId: user.id,
           nickname: user.nickname,
           introduce: user.introduce ? user.introduce : '',
-          contentUrl: user.contentUrl ? JSON.parse(user.contentUrl) : [],
+          contentUrl: user.File['contentUrl'] ? user.File['contentUrl'] : [],
         };
       });
 
