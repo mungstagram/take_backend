@@ -23,8 +23,14 @@ export class DmsService {
   async popupChatRoom(popupChatRoomDto: PopupChatRoomDto) {
     const users =
       popupChatRoomDto.senderId < popupChatRoomDto.receiverId
-        ? [popupChatRoomDto.senderId, popupChatRoomDto.receiverId]
-        : [popupChatRoomDto.receiverId, popupChatRoomDto.senderId];
+        ? [
+            { id: popupChatRoomDto.senderId, exitedAt: new Date() },
+            { id: popupChatRoomDto.receiverId, exitedAt: new Date() },
+          ]
+        : [
+            { id: popupChatRoomDto.receiverId, exitedAt: new Date() },
+            { id: popupChatRoomDto.senderId, exitedAt: new Date() },
+          ];
 
     const chatRoomsExist = await this.chatRoomsRepository.findOne({
       where: { users },
@@ -36,7 +42,6 @@ export class DmsService {
       newRoom.createdAt = new Date();
       newRoom.updatedAt = new Date();
       newRoom.roomId = randomUUID().replace(/-/g, '');
-      newRoom.exitedAt = [new Date(), new Date()];
 
       console.log('uuid', newRoom.roomId);
 
@@ -65,8 +70,8 @@ export class DmsService {
     const users = await this.usersRepository
       .createQueryBuilder('u')
       .select(['u.id', 'u.nickname'])
-      .where('id = :user0', { user0: room.users[0] })
-      .orWhere('id = :user1', { user1: room.users[1] })
+      .where('id = :user0', { user0: room.users[0].id })
+      .orWhere('id = :user1', { user1: room.users[1].id })
       .getMany();
 
     messages.sort((a, b) => {
