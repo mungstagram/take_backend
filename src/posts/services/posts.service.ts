@@ -7,7 +7,6 @@ import { PostsCreateRequestsDto } from './../dto/postscreate.request.dto';
 import {
   BadRequestException,
   ForbiddenException,
-  Inject,
   Injectable,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -15,6 +14,7 @@ import { DataSource, Repository } from 'typeorm';
 import * as AWS from 'aws-sdk';
 import { timeGap } from 'src/helper/timegap.helper';
 import { PostFiles } from '../../entities/PostFiles';
+import { Comments } from '../../entities/Comments';
 
 @Injectable()
 export class PostsService {
@@ -29,6 +29,10 @@ export class PostsService {
     private readonly postsRepository: Repository<Posts>,
     @InjectRepository(PostFiles, 'postgresql')
     private readonly postFilesReposirory: Repository<PostFiles>,
+    @InjectRepository(Files, 'postgresql')
+    private readonly filesRepository: Repository<Files>,
+    @InjectRepository(Comments, 'postgresql')
+    private readonly commentsRepository: Repository<Comments>,
     private readonly awsService: AWSService,
   ) {}
 
@@ -125,7 +129,7 @@ export class PostsService {
         'p.title',
         'p.content',
         'p.category',
-        'u.contentUrl',
+        'u.FileId',
         'u.nickname',
         'p.createdAt',
         'pl',
@@ -154,10 +158,14 @@ export class PostsService {
           (v) => v['File']['contentUrl'],
         );
 
+        const profileUrl = await this.filesRepository.findOne({
+          where: { id: post.User.FileId },
+        });
+
         return {
           postId: post.id,
           nickname: post.User.nickname,
-          profileUrl: JSON.parse(post.User.contentUrl),
+          profileUrl: profileUrl.contentUrl,
           title: post.title,
           content: post.content,
           contentUrl: contentUrl,
@@ -189,27 +197,59 @@ export class PostsService {
     try {
       const userId = payload.sub;
 
-      const onePost = await this.postsRepository
-        .createQueryBuilder('p')
-        .select([
-          'p.id',
-          'p.title',
-          'p.content',
-          'p.category',
-          'u.nickname',
-          'u.contentUrl',
-          'p.createdAt',
-          'pl',
-          'f.contentUrl',
-        ])
-        .leftJoin('p.User', 'u')
-        .leftJoinAndSelect('p.PostFiles', 'pf')
-        .leftJoin('pf.File', 'f')
-        .leftJoinAndSelect('p.Comments', 'c')
-        .leftJoin('p.PostLikes', 'pl')
-        .loadRelationCountAndMap('p.PostLikes', 'p.PostLikes')
-        .where('p.id=:postId', { postId: postId })
-        .getOne();
+      const isExistComments = await this.commentsRepository.findOne({
+        where: { PostId: postId },
+      });
+
+      const onePost = isExistComments
+        ? await this.postsRepository
+            .createQueryBuilder('p')
+            .select([
+              'p.id',
+              'p.title',
+              'p.content',
+              'p.category',
+              'u.nickname',
+              'p.createdAt',
+              'pl',
+              'f.contentUrl',
+              'uf.contentUrl',
+              'cuf.contentUrl',
+              'cu.FileId',
+            ])
+            .leftJoin('p.User', 'u')
+            .leftJoinAndSelect('p.PostFiles', 'pf')
+            .leftJoin('pf.File', 'f')
+            .leftJoin('p.PostLikes', 'pl')
+            .leftJoin('u.File', 'uf')
+            .leftJoinAndSelect('p.Comments', 'c')
+            .leftJoin('c.User', 'cu')
+            .leftJoin('cu.File', 'cuf')
+            .loadRelationCountAndMap('p.PostLikes', 'p.PostLikes')
+            .where('p.id=:postId', { postId: postId })
+            .getOne()
+        : await this.postsRepository
+            .createQueryBuilder('p')
+            .select([
+              'p.id',
+              'p.title',
+              'p.content',
+              'p.category',
+              'u.nickname',
+              'p.createdAt',
+              'pl',
+              'f.contentUrl',
+              'uf.contentUrl',
+            ])
+            .leftJoin('p.User', 'u')
+            .leftJoinAndSelect('p.PostFiles', 'pf')
+            .leftJoin('pf.File', 'f')
+            .leftJoin('p.PostLikes', 'pl')
+            .leftJoin('u.File', 'uf')
+            .leftJoinAndSelect('p.Comments', 'c')
+            .loadRelationCountAndMap('p.PostLikes', 'p.PostLikes')
+            .where('p.id=:postId', { postId: postId })
+            .getOne();
 
       if (!onePost) {
         throw new BadRequestException('해당 게시물이 없습니다.');
@@ -226,30 +266,32 @@ export class PostsService {
         (v) => v['File']['contentUrl'],
       );
 
-      const sortedComments = onePost.Comments?.sort((a, b) => {
-        if (onePost.Comments.length === 0) {
-          return undefined;
-        }
-        if (
-          typeof a.createdAt.getTime() === 'number' &&
-          typeof b.createdAt.getTime() === 'number'
-        ) {
-          return b.createdAt.getTime() - a.createdAt.getTime();
-        }
-      })?.map((comment) => {
-        return {
-          id: comment.id,
-          comment: comment.comment,
-          userId: comment.UserId,
-          profileUrl: comment.User.contentUrl,
-          createdAt: timeGap(comment.createdAt),
-        };
-      });
+      const sortedComments = isExistComments
+        ? onePost.Comments?.sort((a, b) => {
+            if (onePost.Comments.length === 0) {
+              return undefined;
+            }
+            if (
+              typeof a.createdAt.getTime() === 'number' &&
+              typeof b.createdAt.getTime() === 'number'
+            ) {
+              return b.createdAt.getTime() - a.createdAt.getTime();
+            }
+          })?.map((comment) => {
+            return {
+              id: comment.id,
+              comment: comment.comment,
+              userId: comment.UserId,
+              profileUrl: comment.User['File']['contentUrl'],
+              createdAt: timeGap(comment.createdAt),
+            };
+          })
+        : [];
 
       return {
         postid: onePost.id,
         nickname: onePost.User.nickname,
-        profileUrl: onePost.User.contentUrl,
+        profileUrl: onePost.User['File']['contentUrl'],
         title: onePost.title,
         content: onePost.content,
         contentUrl: contentUrl,
@@ -283,7 +325,7 @@ export class PostsService {
     if (!postData)
       throw new BadRequestException('존재하지 않는 게시글 입니다.');
 
-    if (postData.UserId === userId)
+    if (!(postData.UserId === userId))
       throw new ForbiddenException('본인의 게시글만 수정 가능합니다');
 
     const filesData = await this.awsService.fileUploads(files, category);

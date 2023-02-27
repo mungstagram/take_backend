@@ -1,3 +1,5 @@
+import { join } from 'path';
+import { Files } from '../entities/Files';
 import { UserCheckRequestDto } from './../users/dtos/user.reqeust.dto';
 import { AWSService } from './../helper/fileupload.helper';
 import { ConfigService } from '@nestjs/config';
@@ -7,6 +9,7 @@ import {
   Injectable,
   UnauthorizedException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -24,20 +27,35 @@ export class ProfileService {
     private readonly configService: ConfigService,
     @InjectRepository(Dogs, 'postgresql')
     private readonly dogsRepository: Repository<Dogs>,
+    @InjectRepository(Files, 'postgresql')
+    private readonly filesRepository: Repository<Files>,
     private readonly awsService: AWSService,
     private readonly usersService: UsersService,
   ) {}
 
   //홈화면 유저 프로필
   async getHomeUserProfile(userId: number) {
-    const userData = await this.usersRepository.findOne({
-      where: { id: userId },
-    });
-    const allDogs = await this.dogsRepository.find({
-      where: {
-        UserId: userId,
-      },
-    });
+    const userData = await this.usersRepository
+      .createQueryBuilder('u')
+      .select(['u.nickname', 'uf.contentUrl'])
+      .leftJoin('u.File', 'uf')
+      .where('u.id = :id', { id: userId })
+      .getOne();
+
+    const allDogs = await this.dogsRepository
+      .createQueryBuilder('d')
+      .select([
+        'd.id',
+        'd.name',
+        'd.species',
+        'd.weight',
+        'd.representative',
+        'd.birthday',
+        'd.bringDate',
+        'df.contentUrl',
+      ])
+      .leftJoin('d.File', 'df')
+      .getMany();
 
     const now = new Date();
 
@@ -59,7 +77,7 @@ export class ProfileService {
       return {
         id: dog.id,
         name: dog.name,
-        contentUrl: dog.contentUrl.length !== 0 ? dog.contentUrl : null,
+        contentUrl: dog.File['contentUrl'],
         daysWithin: daysWithin,
         age: age,
         species: dog.species,
@@ -81,7 +99,7 @@ export class ProfileService {
       {
         user: {
           nickname: userData.nickname,
-          contentUrl: userData.contentUrl,
+          contentUrl: userData.File['contentUrl'],
         },
       },
       { dogs: allDogsData },
@@ -92,23 +110,34 @@ export class ProfileService {
 
   //유저 프로필 조회 service
   async getUserProfile(nickname: string) {
-    const userData = await this.usersRepository.findOne({
-      where: {
-        nickname: nickname,
-      },
-    });
+    const userData = await this.usersRepository
+      .createQueryBuilder('u')
+      .select(['u.nickname', 'u.introduce', 'uf.contentUrl'])
+      .leftJoin('u.File', 'uf')
+      .where('u.nickname = :nickname', { nickname })
+      .getOne();
 
-    const allDogs = await this.dogsRepository.find({
-      where: {
-        UserId: userData.id,
-      },
-    });
+    const allDogs = await this.dogsRepository
+      .createQueryBuilder('d')
+      .select([
+        'd.id',
+        'd.name',
+        'd.species',
+        'd.weight',
+        'd.representative',
+        'd.birthday',
+        'd.bringDate',
+        'd.introduce',
+        'df.contentUrl',
+      ])
+      .leftJoin('d.File', 'df')
+      .getMany();
 
     const allDogsData = allDogs.map((dog) => {
       return {
         id: dog.id,
         name: dog.name,
-        contentUrl: dog.contentUrl.length !== 0 ? dog.contentUrl : null,
+        contentUrl: dog.File['contentUrl'],
         introduce: dog.introduce,
         species: dog.species,
         weight: dog.weight,
@@ -130,7 +159,7 @@ export class ProfileService {
       {
         user: {
           nickname: userData.nickname,
-          contentUrl: userData.contentUrl,
+          contentUrl: userData.File['contentUrl'],
           introduce: userData.introduce,
           dogsCount: allDogs.length,
         },
@@ -147,34 +176,34 @@ export class ProfileService {
     files: Array<Express.Multer.File>,
     data: { introduce: string; changeNickname: string },
   ) {
-    const userData = await this.usersRepository.findOne({
-      where: { nickname: nickname },
-    });
+    const userData = await this.usersRepository
+      .createQueryBuilder('u')
+      .select(['u.id', 'u.nickname', 'u.introduce', 'uf.contentUrl'])
+      .leftJoin('u.File', 'uf')
+      .where('u.nickname = :nickname', { nickname })
+      .getOne();
 
     if (!userData) {
       throw new BadRequestException('존재하지 않는 유저입니다');
     }
     if (userId !== userData.id) {
-      throw new UnauthorizedException('수정 권한이 없습니다');
+      throw new ForbiddenException('수정 권한이 없습니다');
     }
-
-    if (data.changeNickname === userData.nickname)
-      throw new BadRequestException('사용중인 닉네임과 같은 닉네임 입니다..');
 
     const userCheckRequestDto = new UserCheckRequestDto();
     userCheckRequestDto.nickname = data.changeNickname;
 
-    await this.usersService.check({
-      ...userCheckRequestDto,
-    });
+    if (data.changeNickname !== userData.nickname) {
+      await this.usersService.check({
+        ...userCheckRequestDto,
+      });
+    }
 
     //s3에 새로운 프로필 이미지 저장
     const category = 'user';
-    const newProfileImage = await this.awsService.fileUploads(files, category);
-
-    const contentUrl = newProfileImage.map((v) => {
-      return v.contentUrl;
-    });
+    const newProfileImage = files[0]
+      ? await this.awsService.fileUploads(files, category)
+      : [{ id: userData.FileId, contentUrl: userData.File['contentUrl'] }];
 
     //유저 정보 업데이트
     await this.usersRepository
@@ -183,7 +212,7 @@ export class ProfileService {
       .set({
         nickname: data.changeNickname,
         introduce: data.introduce,
-        contentUrl: !files[0] ? userData.contentUrl : contentUrl[0],
+        FileId: newProfileImage[0].id,
       })
       .where('id=:userId', { userId: userId })
       .execute();
@@ -191,7 +220,7 @@ export class ProfileService {
     return {
       nickname: data.changeNickname,
       introduce: data.introduce,
-      contentUrl: !files[0] ? JSON.parse(userData.contentUrl) : contentUrl,
+      contentUrl: newProfileImage[0].contentUrl,
     };
   }
 
@@ -202,7 +231,22 @@ export class ProfileService {
     data,
   ) {
     //강아지 정보 받아오고 에러처리
-    const dogData = await this.dogsRepository.findOne({ where: { id: id } });
+    const dogData = await this.dogsRepository
+      .createQueryBuilder('d')
+      .select([
+        'd.id',
+        'd.name',
+        'd.species',
+        'd.weight',
+        'd.representative',
+        'd.birthday',
+        'd.bringDate',
+        'd.UserId',
+        'df.contentUrl',
+      ])
+      .leftJoin('d.File', 'df')
+      .where('id = :id', { id })
+      .getOne();
 
     if (!dogData) {
       throw new BadRequestException('해당 강아지 데이터가 없습니다.');
@@ -229,11 +273,12 @@ export class ProfileService {
 
     // s3에 새로운 강아지 프로필 이미지 저장
     const category = 'dog';
-    const newDogImage = await this.awsService.fileUploads(files, category);
-
-    const contentUrl = newDogImage.map((v) => {
-      return v.contentUrl;
-    });
+    // iles[0]
+    //   ? await this.awsService.fileUploads(files, category)
+    //   : [{ id: userData.FileId, contentUrl: userData.File['contentUrl'] }];
+    const newDogImage = files[0]
+      ? await this.awsService.fileUploads(files, category)
+      : [{ id: dogData.id, contentUrl: dogData.File['contentUrl'] }];
 
     //강아지 정보 업데이트
     this.dogsRepository
@@ -246,7 +291,7 @@ export class ProfileService {
         weight: data.weight,
         birthday: data.birthday,
         bringDate: data.bringDate,
-        contentUrl: !files[0] ? dogData.contentUrl : contentUrl[0],
+        FileId: newDogImage[0].id,
       })
       .where('id= :id', { id: id })
       .execute();
@@ -259,7 +304,7 @@ export class ProfileService {
       weight: data.weight,
       birthday: data.birthday,
       bringDate: data.bringDate,
-      contentUrl: !files[0] ? dogData.contentUrl : contentUrl,
+      contentUrl: newDogImage[0].contentUrl,
     };
   }
 }

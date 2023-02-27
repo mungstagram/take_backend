@@ -46,7 +46,7 @@ export class UsersService {
       nickname: data.nickname,
       password: hashedPassword,
       provider: data.provider,
-      contentUrl: data.profile_image,
+      // contentUrl: data.profile_image,
     });
 
     return 'Created';
@@ -104,9 +104,9 @@ export class UsersService {
     return {
       nickname: userData.nickname,
       introduce: userData.introduce ? userData.introduce : null,
-      contentUrl: userData.contentUrl
-        ? JSON.parse(userData.contentUrl)[0]
-        : null,
+      // contentUrl: userData.contentUrl
+      //   ? JSON.parse(userData.contentUrl)[0]
+      //   : null,
       postsCount: userData['postsCount'],
       dogsCount: userData['dogsCount'],
     };

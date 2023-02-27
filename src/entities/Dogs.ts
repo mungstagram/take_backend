@@ -5,9 +5,11 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Files } from './Files';
 import { Users } from './Users';
 
 @Entity({ name: 'dogs' })
@@ -37,9 +39,6 @@ export class Dogs {
   representative: boolean;
 
   @Column({ type: 'text' })
-  contentUrl: string;
-
-  @Column({ type: 'text' })
   introduce: string;
 
   @CreateDateColumn({ type: 'timestamp' })
@@ -56,10 +55,18 @@ export class Dogs {
   @Column({ type: 'int' })
   UserId: number;
 
+  @Column({ type: 'int' })
+  FileId: number;
+
   // * Relation * /
 
   // *  Dogs | M : 1 | Users
   @ManyToOne(() => Users, (users) => users.Dogs, {})
   @JoinColumn([{ name: 'UserId', referencedColumnName: 'id' }])
   User: Users;
+
+  // * Dogs | 1 : 1 | File
+  @ManyToOne(() => Files, (files) => files.Dog)
+  @JoinColumn([{ name: 'FileId', referencedColumnName: 'id' }])
+  File: Files[];
 }
