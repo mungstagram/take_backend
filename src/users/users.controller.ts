@@ -14,9 +14,11 @@ import {
   Param,
 } from '@nestjs/common';
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiConflictResponse,
   ApiCreatedResponse,
+  ApiOkResponse,
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
@@ -42,6 +44,8 @@ export class UsersController {
 
   @ApiOperation({ summary: '닉네임, 이메일 유효성, 중복 검사 API' })
   @HttpCode(200)
+  @ApiOkResponse({ description: '중복 체크에 성공했을 경우' })
+  @ApiBadRequestResponse({ description: '데이터 형식이 올바르지 않은 경우' })
   @Post('signup/check')
   async check(@Body() userCheckRequestDto: UserCheckRequestDto) {
     return await this.usersService.check(userCheckRequestDto);
@@ -51,6 +55,8 @@ export class UsersController {
   @ApiBearerAuth('Authorization')
   @UseGuards(JwtAuthGuard)
   @HttpCode(200)
+  @ApiOkResponse({ description: '유저 데이터를 조회한 경우' })
+  @ApiBadRequestResponse({ description: '유저의 데이터가 없는 경우' })
   @Get(':nickname')
   async loadUserData(
     @Param('nickname') nickname: string,

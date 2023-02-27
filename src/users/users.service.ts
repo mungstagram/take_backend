@@ -26,6 +26,7 @@ export class UsersService {
   }
 
   async signup(data: SignupReqeustDto) {
+    console.log(data);
     const email = await this.usersRepository.findOne({
       where: { email: data.email },
     });
@@ -93,20 +94,21 @@ export class UsersService {
   async loadUserData(nickname: string, userId: number) {
     const userData = await this.usersRepository
       .createQueryBuilder('u')
-      .select()
+      .select(['u.nickname', 'u.introduce', 'u.id', 'uf.contentUrl'])
+      .leftJoin('u.File', 'uf')
       .loadRelationCountAndMap('u.postsCount', 'u.Posts')
       .loadRelationCountAndMap('u.dogsCount', 'u.Dogs')
       .where('u.nickname =:nickname', { nickname: nickname })
       .getOne();
 
-    console.log(userData);
+    if (!userData) {
+      throw new BadRequestException('해당 데이터가 존재하지 않습니다');
+    }
 
     return {
       nickname: userData.nickname,
-      introduce: userData.introduce ? userData.introduce : null,
-      // contentUrl: userData.contentUrl
-      //   ? JSON.parse(userData.contentUrl)[0]
-      //   : null,
+      introduce: userData.introduce ? userData.introduce : '',
+      contentUrl: userData.File ? userData.File['contentUrl'] : '',
       postsCount: userData['postsCount'],
       dogsCount: userData['dogsCount'],
     };

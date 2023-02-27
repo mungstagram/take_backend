@@ -1,3 +1,5 @@
+import { JwtService } from '@nestjs/jwt';
+import { AuthModule } from './../auth/auth.module';
 import { DmsModule } from './../dms/dms.module';
 import { Users } from '../entities/Users';
 import { Chattings } from '../entities/mongo/Chattings';
@@ -13,7 +15,8 @@ import mongoDataSource from 'mongoDataSource';
     TypeOrmModule.forFeature([ChatRooms, Chattings], mongoDataSource),
     TypeOrmModule.forFeature([Users], postgresDataSource),
     DmsModule,
+    AuthModule,
   ],
-  providers: [DMGateway, ChatRoomsGateway, TestGateWay],
+  providers: [DMGateway, ChatRoomsGateway, TestGateWay, JwtService],
 })
 export class EventsModule {}

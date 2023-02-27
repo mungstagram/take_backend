@@ -9,6 +9,9 @@ import {
   ApiBearerAuth,
   ApiConsumes,
   ApiBody,
+  ApiOkResponse,
+  ApiBadRequestResponse,
+  ApiCreatedResponse,
 } from '@nestjs/swagger';
 import { ProfileService } from './profile.service';
 import {
@@ -34,6 +37,8 @@ export class ProfileController {
   @UseGuards(JwtAuthGuard)
   @Get()
   @HttpCode(200)
+  @ApiOkResponse({ description: '홈화면 유저 프로필 조회에 성공했을 경우' })
+  @ApiBadRequestResponse({ description: '해당 유저가 없는 경우' })
   async getHomeUserProfile(@GetPayload() payload: JwtPayload) {
     const userId = payload.sub;
     return await this.profileService.getHomeUserProfile(userId);
@@ -45,6 +50,8 @@ export class ProfileController {
   @UseGuards(JwtAuthGuard)
   @Get(':nickname')
   @HttpCode(200)
+  @ApiOkResponse({ description: '유저 프로필 조회에 성공했을 경우' })
+  @ApiBadRequestResponse({ description: '해당 유저가 없는 경우' })
   async getUserProfile(@Param('nickname') nickname: string) {
     return await this.profileService.getUserProfile(nickname);
   }
@@ -79,6 +86,7 @@ export class ProfileController {
   })
   @UseInterceptors(FilesInterceptor('files', 1))
   @HttpCode(201)
+  @ApiCreatedResponse({ description: '수정에 성공했을 경우' })
   async updateUserProfile(
     @Param('nickname') nickname: string,
     @GetPayload() payload: JwtPayload,

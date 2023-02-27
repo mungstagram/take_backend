@@ -24,6 +24,6 @@ import postgresDataSource from 'dataSource';
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, GoogleStrategy, KakaoStrategy],
-  exports: [AuthModule],
+  exports: [AuthService],
 })
 export class AuthModule {}

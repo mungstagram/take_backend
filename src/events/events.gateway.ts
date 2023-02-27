@@ -1,3 +1,5 @@
+import { JwtService } from '@nestjs/jwt';
+import { JwtPayload } from './../auth/jwt/jwt.payload.dto';
 import { DmsService } from './../dms/dms.service';
 import { ChatRooms } from '../entities/mongo/ChatRoom';
 import { Logger, BadRequestException } from '@nestjs/common';
@@ -28,13 +30,27 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @InjectRepository(Users, 'postgresql')
     private readonly usersRepository: Repository<Users>,
     private readonly dmsService: DmsService,
+    private readonly jwtService: JwtService,
   ) {}
   @WebSocketServer() public server: Server;
 
+  async tokenValidate(token: string) {
+    try {
+      const data = await this.jwtService.verifyAsync(token, {
+        secret: process.env.JWT_REFRESH_SECRET,
+      });
+      return data;
+    } catch (err) {
+      throw new BadRequestException('유효하지 않은 토큰입니다.');
+    }
+  }
+
   async handleConnection(@ConnectedSocket() socket: Socket) {
-    console.log(socket.handshake.headers);
+    const token = socket.handshake.headers.authorization.split(' ')[1];
+    const userData: JwtPayload = await this.tokenValidate(token);
+    const userId = userData.sub;
+
     Logger.log(socket.nsp.name, 'Connected');
-    // console.log(socket.handshake.headers.authorization);
 
     if (!users.length) {
       const chatRoomUsers = await this.chatRoomsRepository.findOne({
@@ -73,13 +89,19 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { message: string; content?: Buffer; sender: number },
     @ConnectedSocket() socket: Socket,
   ) {
+    const token = socket.handshake.headers.authorization.split(' ')[1];
+    const userData: JwtPayload = await this.tokenValidate(token);
+    const userId = userData.sub;
+
+    console.log(users);
+
     const sender =
-      data.sender === users[0]['id']
+      userId === users[0]['id']
         ? { id: users[0]['id'], nickname: users[0]['nickname'] }
         : { id: users[1]['id'], nickname: users[1]['nickname'] };
 
     const receiver =
-      data.sender !== users[0]['id']
+      userId !== users[0]['id']
         ? { id: users[0]['id'], nickname: users[0]['nickname'] }
         : { id: users[1]['id'], nickname: users[1]['nickname'] };
 
