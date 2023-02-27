@@ -55,7 +55,12 @@ export class ProfileService {
         'df.contentUrl',
       ])
       .leftJoin('d.File', 'df')
+      .where('d.UserId = :userId', { userId: userId })
       .getMany();
+
+    if (!userData) {
+      throw new BadRequestException('해당 유저 데이터가 없습니다.');
+    }
 
     const now = new Date();
 
@@ -112,7 +117,7 @@ export class ProfileService {
   async getUserProfile(nickname: string) {
     const userData = await this.usersRepository
       .createQueryBuilder('u')
-      .select(['u.nickname', 'u.introduce', 'uf.contentUrl'])
+      .select(['u.id', 'u.nickname', 'u.introduce', 'uf.contentUrl'])
       .leftJoin('u.File', 'uf')
       .where('u.nickname = :nickname', { nickname })
       .getOne();
@@ -131,7 +136,12 @@ export class ProfileService {
         'df.contentUrl',
       ])
       .leftJoin('d.File', 'df')
+      .where('d.UserId = :userId', { userId: userData.id })
       .getMany();
+
+    if (!userData) {
+      throw new BadRequestException('해당 유저 데이터가 없습니다.');
+    }
 
     const allDogsData = allDogs.map((dog) => {
       return {
@@ -184,7 +194,7 @@ export class ProfileService {
       .getOne();
 
     if (!userData) {
-      throw new BadRequestException('존재하지 않는 유저입니다');
+      throw new BadRequestException('해당 유저 데이터가 없습니다.');
     }
     if (userId !== userData.id) {
       throw new ForbiddenException('수정 권한이 없습니다');
@@ -245,7 +255,7 @@ export class ProfileService {
         'df.contentUrl',
       ])
       .leftJoin('d.File', 'df')
-      .where('id = :id', { id })
+      .where('d.id = :id', { id })
       .getOne();
 
     if (!dogData) {
