@@ -17,11 +17,18 @@ import { Socket, Server } from 'socket.io';
 import { Chattings } from '../entities/mongo/Chattings';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Users } from '../entities/Users';
-import { In, MongoRepository, Repository } from 'typeorm';
+import { MongoRepository, Repository } from 'typeorm';
 
 const users: object[] = [];
 
-@WebSocketGateway(3001, { namespace: /dm\/.[a-zA-Z0-9]/g })
+@WebSocketGateway(3001, {
+  namespace: /dm\/.[a-zA-Z0-9]/g,
+  cors: {
+    origin: true,
+    methods: ['GET', 'POST'],
+    exposedHeaders: ['Authorization'],
+  },
+})
 export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     @InjectRepository(Chattings, 'mongodb')
@@ -47,51 +54,57 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   async handleConnection(@ConnectedSocket() socket: Socket) {
-    const token = socket.handshake.headers.authorization.split(' ')[1];
-    const userData: JwtPayload = await this.tokenValidate(token);
+    try {
+      const token = socket.handshake.headers.authorization.split(' ')[1];
+      const userData: JwtPayload = await this.tokenValidate(token);
 
-    Logger.log(socket.nsp.name, 'Connected');
+      Logger.log(socket.nsp.name, 'Connected');
 
-    if (!users.length) {
-      const chatRoomUsers = await this.chatRoomsRepository.findOne({
-        where: {
-          roomId: socket.nsp.name.substring(4, socket.nsp.name.length),
-        },
+      if (!users.length) {
+        const chatRoomUsers = await this.chatRoomsRepository.findOne({
+          where: {
+            roomId: socket.nsp.name.substring(4, socket.nsp.name.length),
+          },
+        });
+
+        // if (!chatRoomUsers)
+        //   throw new BadRequestException('존재하지 않는 채팅방 입니다.');
+
+        const usersNickname = await this.usersRepository
+          .createQueryBuilder('u')
+          .select(['u.id', 'u.nickname'])
+          .where('u.id = :user0', { user0: chatRoomUsers.users[0].id })
+          .orWhere('u.id = :user1', { user1: chatRoomUsers.users[1].id })
+          .getMany();
+
+        users.push(usersNickname[0]);
+        users.push(usersNickname[1]);
+      }
+
+      const chatRoom = await this.chatRoomsRepository.findOne({
+        where: { roomId: socket.nsp.name.substring(4, socket.nsp.name.length) },
       });
 
-      // if (!chatRoomUsers)
-      //   throw new BadRequestException('존재하지 않는 채팅방 입니다.');
+      const myUser = { id: userData.sub, exitedAt: null };
+      const otherUser =
+        chatRoom.users[0].id === myUser.id
+          ? { id: chatRoom.users[1].id, exitedAt: chatRoom.users[1].exitedAt }
+          : { id: chatRoom.users[0].id, exitedAt: chatRoom.users[0].exitedAt };
 
-      const usersNickname = await this.usersRepository
-        .createQueryBuilder('u')
-        .select(['u.id', 'u.nickname'])
-        .where('u.id = :user0', { user0: chatRoomUsers.users[0].id })
-        .orWhere('u.id = :user1', { user1: chatRoomUsers.users[1].id })
-        .getMany();
+      const updateUsers =
+        myUser.id < otherUser.id ? [myUser, otherUser] : [otherUser, myUser];
 
-      users.push(usersNickname[0]);
-      users.push(usersNickname[1]);
+      await this.chatRoomsRepository.update(chatRoom.id, {
+        users: updateUsers,
+      });
+      const getMessages = await this.dmsService.joinChatRoom(
+        socket.nsp.name.substring(4, socket.nsp.name.length),
+      );
+
+      socket.emit('getMessages', getMessages);
+    } catch (error) {
+      Logger.log(error.message, 'DM Connect');
     }
-
-    const chatRoom = await this.chatRoomsRepository.findOne({
-      where: { roomId: socket.nsp.name.substring(4, socket.nsp.name.length) },
-    });
-
-    const myUser = { id: userData.sub, exitedAt: null };
-    const otherUser =
-      chatRoom.users[0].id === myUser.id
-        ? { id: chatRoom.users[1].id, exitedAt: chatRoom.users[1].exitedAt }
-        : { id: chatRoom.users[0].id, exitedAt: chatRoom.users[0].exitedAt };
-
-    const updateUsers =
-      myUser.id < otherUser.id ? [myUser, otherUser] : [otherUser, myUser];
-
-    await this.chatRoomsRepository.update(chatRoom.id, { users: updateUsers });
-    const getMessages = await this.dmsService.joinChatRoom(
-      socket.nsp.name.substring(4, socket.nsp.name.length),
-    );
-
-    socket.emit('getMessages', getMessages);
   }
 
   async handleDisconnect(@ConnectedSocket() socket: Socket) {
@@ -119,41 +132,50 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { message: string; content?: Buffer; sender: number },
     @ConnectedSocket() socket: Socket,
   ) {
-    const token = socket.handshake.headers.authorization.split(' ')[1];
-    const userData: JwtPayload = await this.tokenValidate(token);
-    const userId = userData.sub;
+    try {
+      const token = socket.handshake.headers.authorization.split(' ')[1];
+      const userData: JwtPayload = await this.tokenValidate(token);
+      const userId = userData.sub;
 
-    const sender =
-      userId === users[0]['id']
-        ? { id: users[0]['id'], nickname: users[0]['nickname'] }
-        : { id: users[1]['id'], nickname: users[1]['nickname'] };
+      const sender =
+        userId === users[0]['id']
+          ? { id: users[0]['id'], nickname: users[0]['nickname'] }
+          : { id: users[1]['id'], nickname: users[1]['nickname'] };
 
-    const receiver =
-      userId !== users[0]['id']
-        ? { id: users[0]['id'], nickname: users[0]['nickname'] }
-        : { id: users[1]['id'], nickname: users[1]['nickname'] };
+      const receiver =
+        userId !== users[0]['id']
+          ? { id: users[0]['id'], nickname: users[0]['nickname'] }
+          : { id: users[1]['id'], nickname: users[1]['nickname'] };
 
-    // const contentUrl = data.content ? fileUpload(data.content) : null;
-    await this.chattingsRepository.insert({
-      message: data.message,
-      contentUrl: '',
-      SenderId: sender.id,
-      ReceiverId: receiver.id,
-      RoomId: socket.nsp.name.substring(4, socket.nsp.name.length),
-      createdAt: new Date(),
-    });
+      // const contentUrl = data.content ? fileUpload(data.content) : null;
+      await this.chattingsRepository.insert({
+        message: data.message,
+        contentUrl: '',
+        SenderId: sender.id,
+        ReceiverId: receiver.id,
+        RoomId: socket.nsp.name.substring(4, socket.nsp.name.length),
+        createdAt: new Date(),
+      });
 
-    socket.broadcast.emit('newDM', {
-      ...data,
-      // mesage: data.message,
-      // contentUrl: data.content,
-      sender: sender,
-      receiver: receiver,
-    });
+      socket.broadcast.emit('newDM', {
+        ...data,
+        sender: sender,
+        receiver: receiver,
+      });
+    } catch (error) {
+      Logger.log(error.message, 'DM');
+    }
   }
 }
 
-@WebSocketGateway(3001, { namespace: '/DMList' })
+@WebSocketGateway(3001, {
+  namespace: '/DMList',
+  cors: {
+    origin: true,
+    methods: ['GET', 'POST'],
+    exposedHeaders: ['Authorization'],
+  },
+})
 export class ChatRoomsGateway implements OnGatewayConnection {
   constructor(
     @InjectRepository(ChatRooms, 'mongodb')
@@ -177,92 +199,84 @@ export class ChatRoomsGateway implements OnGatewayConnection {
   }
 
   async handleConnection(@ConnectedSocket() socket: Socket) {
-    const token = socket.handshake.headers.authorization.split(' ')[1];
-    const userData: JwtPayload = await this.tokenValidate(token);
+    try {
+      const token = socket.handshake.headers.authorization.split(' ')[1];
+      const userData: JwtPayload = await this.tokenValidate(token);
 
-    const userChatRoomList = await this.chatRoomsRepository.find({
-      where: { users: { $elemMatch: { id: userData.sub } } },
-    });
+      const userChatRoomList = await this.chatRoomsRepository.find({
+        where: { users: { $elemMatch: { id: userData.sub } } },
+      });
 
-    const arrayChatRoomId = userChatRoomList.map((room) => room.roomId);
+      const arrayChatRoomId = userChatRoomList.map((room) => room.roomId);
 
-    const lastChats = await this.chattingsRepository
-      .aggregate([
-        {
-          $lookup: {
-            from: 'chatRooms',
-            localField: 'RoomId',
-            foreignField: 'roomId',
-            as: 'room',
-          },
-        },
-        {
-          $match: {
-            'room.roomId': {
-              $in: arrayChatRoomId,
+      const lastChats = await this.chattingsRepository
+        .aggregate([
+          {
+            $lookup: {
+              from: 'chatRooms',
+              localField: 'RoomId',
+              foreignField: 'roomId',
+              as: 'room',
             },
           },
-        },
-        {
-          $sort: {
-            createdAt: -1,
-          },
-        },
-        {
-          $group: {
-            _id: '$RoomId',
-            lastChat: {
-              $first: '$$ROOT',
+          {
+            $match: {
+              'room.roomId': {
+                $in: arrayChatRoomId,
+              },
             },
           },
-        },
-      ])
-      .toArray();
+          {
+            $sort: {
+              createdAt: -1,
+            },
+          },
+          {
+            $group: {
+              _id: '$RoomId',
+              lastChat: {
+                $first: '$$ROOT',
+              },
+            },
+          },
+        ])
+        .toArray();
 
-    const myUserId = userData.sub;
-    const otherUsers = lastChats.map((v) => {
-      return v.lastChat['room'][0]['users'][0]['id'] === myUserId
-        ? {
-            id: v.lastChat['room'][0]['users'][1]['id'],
-            exitedAt: v.lastChat['room'][0]['users'][1]['exitedAt'],
-          }
-        : {
-            id: v.lastChat['room'][0]['users'][0]['id'],
-            exitedAt: v.lastChat['room'][0]['users'][0]['exitedAt'],
-          };
-    });
-    const otherUserIds = otherUsers.map((v) => v.id);
+      const myUserId = userData.sub;
+      const otherUsers = lastChats.map((v) => {
+        return v.lastChat['room'][0]['users'][0]['id'] === myUserId
+          ? {
+              id: v.lastChat['room'][0]['users'][1]['id'],
+              exitedAt: v.lastChat['room'][0]['users'][1]['exitedAt'],
+            }
+          : {
+              id: v.lastChat['room'][0]['users'][0]['id'],
+              exitedAt: v.lastChat['room'][0]['users'][0]['exitedAt'],
+            };
+      });
+      const otherUserIds = otherUsers.map((v) => v.id);
 
-    const lastChatUsers = lastChats.map((v) => {
-      return v.lastChat.SenderId;
-    });
+      const users = await this.usersRepository
+        .createQueryBuilder('u')
+        .select(['u.id', 'u.nickname', 'uf.contentUrl'])
+        .leftJoin('u.File', 'uf')
+        .where('u.id In (:...ids)', { ids: otherUserIds })
+        .getMany();
 
-    const myNickname = await this.usersRepository.findOne({
-      where: { id: myUserId },
-      select: { nickname: true },
-    });
+      const chatRooms = lastChats.map((v, i) => {
+        return {
+          roomId: v.lastChat.RoomId,
+          nickname: users[i].nickname,
+          lastChat: v.lastChat.message,
+          profileUrl: users[i].File['contentUrl'],
+          timeGap: timeGap(v.lastChat.createdAt),
+        };
+      });
 
-    const users = await this.usersRepository
-      .createQueryBuilder('u')
-      .select(['u.id', 'u.nickname', 'uf.contentUrl'])
-      .leftJoin('u.File', 'uf')
-      .where('u.id In (:...ids)', { ids: otherUserIds })
-      .getMany();
-
-    const chatRooms = lastChats.map((v, i) => {
-      return {
-        roomId: v.lastChat.RoomId,
-        nickname:
-          users[i].id === lastChatUsers[i] ? users[i].nickname : myNickname,
-        lastChat: v.lastChat.message,
-        profileUrl: users[i].File['contentUrl'],
-        timeGap: timeGap(v.lastChat.createdAt),
-      };
-    });
-
-    socket.emit('DMList', chatRooms);
-
-    // socket.emit('DMList', userChatRoomList);
+      socket.emit('DMList', chatRooms);
+    } catch (error) {
+      Logger.log(error.message, 'DMList');
+    }
   }
 }
 @WebSocketGateway(3001, { namespace: /test\/.+/ })
