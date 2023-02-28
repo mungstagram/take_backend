@@ -103,7 +103,7 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       socket.emit('getMessages', getMessages);
     } catch (error) {
-      Logger.log(error.message, 'DM Connect');
+      Logger.error(error.message, 'DM Connect');
     }
   }
 
@@ -157,13 +157,15 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
         createdAt: new Date(),
       });
 
+      socket.emit('newDM', { ...data, sender: sender, receiver: receiver });
+
       socket.broadcast.emit('newDM', {
         ...data,
         sender: sender,
         receiver: receiver,
       });
     } catch (error) {
-      Logger.log(error.message, 'DM');
+      Logger.error(error.message, 'DM');
     }
   }
 }
@@ -275,7 +277,7 @@ export class ChatRoomsGateway implements OnGatewayConnection {
 
       socket.emit('DMList', chatRooms);
     } catch (error) {
-      Logger.log(error.message, 'DMList');
+      Logger.error(error.message, 'DMList');
     }
   }
 }
