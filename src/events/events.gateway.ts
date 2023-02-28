@@ -1,3 +1,4 @@
+import { timeGap } from 'src/helper/timegap.helper';
 import { JwtService } from '@nestjs/jwt';
 import { JwtPayload } from './../auth/jwt/jwt.payload.dto';
 import { DmsService } from './../dms/dms.service';
@@ -159,6 +160,8 @@ export class ChatRoomsGateway implements OnGatewayConnection {
     private readonly chatRoomsRepository: Repository<ChatRooms>,
     @InjectRepository(Chattings, 'mongodb')
     private readonly chattingsRepository: MongoRepository<Chattings>,
+    @InjectRepository(Users, 'postgresql')
+    private readonly usersRepository: Repository<Users>,
     private readonly jwtService: JwtService,
   ) {}
 
@@ -216,7 +219,48 @@ export class ChatRoomsGateway implements OnGatewayConnection {
       ])
       .toArray();
 
-    socket.emit('DMList', lastChats);
+    const myUserId = userData.sub;
+    const otherUsers = lastChats.map((v) => {
+      return v.lastChat['room'][0]['users'][0]['id'] === myUserId
+        ? {
+            id: v.lastChat['room'][0]['users'][1]['id'],
+            exitedAt: v.lastChat['room'][0]['users'][1]['exitedAt'],
+          }
+        : {
+            id: v.lastChat['room'][0]['users'][0]['id'],
+            exitedAt: v.lastChat['room'][0]['users'][0]['exitedAt'],
+          };
+    });
+    const otherUserIds = otherUsers.map((v) => v.id);
+
+    const lastChatUsers = lastChats.map((v) => {
+      return v.lastChat.SenderId;
+    });
+
+    const myNickname = await this.usersRepository.findOne({
+      where: { id: myUserId },
+      select: { nickname: true },
+    });
+
+    const users = await this.usersRepository
+      .createQueryBuilder('u')
+      .select(['u.id', 'u.nickname', 'uf.contentUrl'])
+      .leftJoin('u.File', 'uf')
+      .where('u.id In (:...ids)', { ids: otherUserIds })
+      .getMany();
+
+    const chatRooms = lastChats.map((v, i) => {
+      return {
+        roomId: v.lastChat.RoomId,
+        nickname:
+          users[i].id === lastChatUsers[i] ? users[i].nickname : myNickname,
+        lastChat: v.lastChat.message,
+        profileUrl: users[i].File['contentUrl'],
+        timeGap: timeGap(v.lastChat.createdAt),
+      };
+    });
+
+    socket.emit('DMList', chatRooms);
 
     // socket.emit('DMList', userChatRoomList);
   }
