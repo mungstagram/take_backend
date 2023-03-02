@@ -147,22 +147,29 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
           ? { id: users[0]['id'], nickname: users[0]['nickname'] }
           : { id: users[1]['id'], nickname: users[1]['nickname'] };
 
-      // const contentUrl = data.content ? fileUpload(data.content) : null;
+      const now = new Date();
+
       await this.chattingsRepository.insert({
         message: data.message,
         contentUrl: '',
         SenderId: sender.id,
         ReceiverId: receiver.id,
         RoomId: socket.nsp.name.substring(4, socket.nsp.name.length),
-        createdAt: new Date(),
+        createdAt: now,
       });
 
-      socket.emit('newDM', { ...data, sender: sender, receiver: receiver });
+      socket.emit('newDM', {
+        ...data,
+        sender: sender,
+        receiver: receiver,
+        createdAt: now,
+      });
 
       socket.broadcast.emit('newDM', {
         ...data,
         sender: sender,
         receiver: receiver,
+        createdAt: now,
       });
     } catch (error) {
       Logger.error(error.message, 'DM');
