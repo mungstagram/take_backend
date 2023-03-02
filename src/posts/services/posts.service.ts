@@ -289,7 +289,7 @@ export class PostsService {
         : [];
 
       return {
-        postid: onePost.id,
+        postId: onePost.id,
         nickname: onePost.User.nickname,
         profileUrl: onePost.User['File']['contentUrl'],
         title: onePost.title,
