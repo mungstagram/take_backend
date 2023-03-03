@@ -286,7 +286,7 @@ export class PostsService {
               id: comment.id,
               comment: comment.comment,
               userId: comment.UserId,
-              profileUrl: comment.User['File']['contentUrl'],
+              profileUrl: comment.User?.File['contentUrl'] ?? '',
               createdAt: timeGap(comment.createdAt),
             };
           })
