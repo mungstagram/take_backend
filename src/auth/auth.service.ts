@@ -130,14 +130,14 @@ export class AuthService {
     };
   }
 
-  async kakaoLogin(data) {
-    if (!data) {
+  async kakaoLogin(token: string) {
+    if (!token) {
       return 'No user from kakao';
     }
 
     return {
       message: 'User information from kakao',
-      user: data,
+      user: token,
     };
   }
 }

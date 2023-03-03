@@ -104,7 +104,7 @@ export class DmsService {
 
   async getChatRoomList(userId: number) {
     const userChatRoomList = await this.chatRoomsRepository.find({
-      where: { users: { $in: [userId] } },
+      where: { users: { $elemMatch: { id: userId } } },
     });
     return userChatRoomList;
   }

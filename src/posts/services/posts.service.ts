@@ -46,7 +46,7 @@ export class PostsService {
     const UserId = payload.sub;
 
     if (Object.keys(files).length === 0) {
-      throw new BadRequestException('files should not be empty');
+      throw new BadRequestException('파일 업로드가 필요합니다.');
     }
 
     // const queryRunner = this.dataSource.createQueryRunner();
@@ -111,7 +111,7 @@ export class PostsService {
         ? 'likescount'
         : false;
 
-    if (!arrayWay) {
+    if (!arrayWay || !category) {
       throw new BadRequestException('잘못된 접근입니다.');
     }
 
@@ -145,6 +145,10 @@ export class PostsService {
       .andWhere(nickExist.condition, nickExist.conditionDetail)
       .orderBy('p.createdAt', 'DESC')
       .getMany();
+
+    if (!allPosts) {
+      throw new BadRequestException('게시글 조회에 실패했습니다.');
+    }
 
     const data = await Promise.all(
       allPosts.map(async (post) => {
@@ -282,7 +286,7 @@ export class PostsService {
               id: comment.id,
               comment: comment.comment,
               userId: comment.UserId,
-              profileUrl: comment.User['File']['contentUrl'],
+              profileUrl: comment.User?.File['contentUrl'] ?? '',
               createdAt: timeGap(comment.createdAt),
             };
           })

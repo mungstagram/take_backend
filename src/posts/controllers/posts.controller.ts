@@ -16,10 +16,12 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiBody,
   ApiConsumes,
   ApiCreatedResponse,
+  ApiOkResponse,
   ApiOperation,
   ApiQuery,
   ApiTags,
@@ -70,6 +72,7 @@ export class PostsController {
   })
   @UseInterceptors(FilesInterceptor('files', 5))
   @HttpCode(201)
+  @ApiBadRequestResponse({ description: '작성 데이터가 없는 경우' })
   async createPosts(
     @GetPayload() payload: JwtPayload,
     @Body() data: PostsCreateRequestsDto,
@@ -87,6 +90,8 @@ export class PostsController {
   @UseGuards(JwtAuthGuard)
   @Get()
   @HttpCode(200)
+  @ApiOkResponse({ description: '게시글 조회에 성공했을 경우' })
+  @ApiBadRequestResponse({ description: '게시글 조회에 실패했을 경우' })
   async getAllPosts(
     @Query() query: { category: string; order: string; nickname?: string },
     @GetPayload() payload: JwtPayload,
@@ -100,6 +105,8 @@ export class PostsController {
   @UseGuards(JwtAuthGuard)
   @Get(':postId')
   @HttpCode(200)
+  @ApiOkResponse({ description: '게시글 조회에 성공했을 경우' })
+  @ApiBadRequestResponse({ description: '게시글 조회에 실패했을 경우' })
   async getOnePost(
     @Param('postId') postId: number,
     @GetPayload() payload: JwtPayload,
