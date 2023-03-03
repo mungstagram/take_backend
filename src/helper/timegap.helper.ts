@@ -1,7 +1,7 @@
 export function timeGap(time: Date) {
-  const now = new Date();
+  const now = new Date().getTime() - 3600 * 1000 * 9;
   const createdTime = new Date(time);
-  const timeGap = now.getTime() - createdTime.getTime();
+  const timeGap = now - createdTime.getTime();
 
   let newTimeGap = '';
 
