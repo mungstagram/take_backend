@@ -284,6 +284,7 @@ export class PostsService {
           })?.map((comment) => {
             return {
               id: comment.id,
+              nickname: comment.User.nickname,
               comment: comment.comment,
               userId: comment.UserId,
               profileUrl: comment.User?.File['contentUrl'] ?? '',
