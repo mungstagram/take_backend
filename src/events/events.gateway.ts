@@ -1,3 +1,4 @@
+import { WebSocketExceptionFilter } from './../common/filter/ws.exception.filter';
 import { timeGap } from 'src/helper/timegap.helper';
 import { JwtService } from '@nestjs/jwt';
 import { JwtPayload } from './../auth/jwt/jwt.payload.dto';
@@ -18,6 +19,7 @@ import { Chattings } from '../entities/mongo/Chattings';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Users } from '../entities/Users';
 import { MongoRepository, Repository } from 'typeorm';
+import { WsException } from '@nestjs/websockets/errors';
 
 const users: object[] = [];
 
@@ -54,57 +56,52 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   async handleConnection(@ConnectedSocket() socket: Socket) {
-    try {
-      const token = socket.handshake.headers.authorization.split(' ')[1];
-      const userData: JwtPayload = await this.tokenValidate(token);
+    const token = socket.handshake.headers.authorization.split(' ')[1];
+    const userData: JwtPayload = await this.tokenValidate(token);
 
-      Logger.log(socket.nsp.name, 'Connected');
+    Logger.log(socket.nsp.name, 'Connected');
 
-      if (!users.length) {
-        const chatRoomUsers = await this.chatRoomsRepository.findOne({
-          where: {
-            roomId: socket.nsp.name.substring(4, socket.nsp.name.length),
-          },
-        });
-
-        // if (!chatRoomUsers)
-        //   throw new BadRequestException('존재하지 않는 채팅방 입니다.');
-
-        const usersNickname = await this.usersRepository
-          .createQueryBuilder('u')
-          .select(['u.id', 'u.nickname'])
-          .where('u.id = :user0', { user0: chatRoomUsers.users[0].id })
-          .orWhere('u.id = :user1', { user1: chatRoomUsers.users[1].id })
-          .getMany();
-
-        users.push(usersNickname[0]);
-        users.push(usersNickname[1]);
-      }
-
-      const chatRoom = await this.chatRoomsRepository.findOne({
-        where: { roomId: socket.nsp.name.substring(4, socket.nsp.name.length) },
+    if (!users.length) {
+      const chatRoomUsers = await this.chatRoomsRepository.findOne({
+        where: {
+          roomId: socket.nsp.name.substring(4, socket.nsp.name.length),
+        },
       });
 
-      const myUser = { id: userData.sub, exitedAt: null };
-      const otherUser =
-        chatRoom.users[0].id === myUser.id
-          ? { id: chatRoom.users[1].id, exitedAt: chatRoom.users[1].exitedAt }
-          : { id: chatRoom.users[0].id, exitedAt: chatRoom.users[0].exitedAt };
+      if (!chatRoomUsers) throw new WebSocketExceptionFilter();
 
-      const updateUsers =
-        myUser.id < otherUser.id ? [myUser, otherUser] : [otherUser, myUser];
+      const usersNickname = await this.usersRepository
+        .createQueryBuilder('u')
+        .select(['u.id', 'u.nickname'])
+        .where('u.id = :user0', { user0: chatRoomUsers.users[0].id })
+        .orWhere('u.id = :user1', { user1: chatRoomUsers.users[1].id })
+        .getMany();
 
-      await this.chatRoomsRepository.update(chatRoom.id, {
-        users: updateUsers,
-      });
-      const getMessages = await this.dmsService.joinChatRoom(
-        socket.nsp.name.substring(4, socket.nsp.name.length),
-      );
-
-      socket.emit('getMessages', getMessages);
-    } catch (error) {
-      Logger.error(error.message, 'DM Connect');
+      users.push(usersNickname[0]);
+      users.push(usersNickname[1]);
     }
+
+    const chatRoom = await this.chatRoomsRepository.findOne({
+      where: { roomId: socket.nsp.name.substring(4, socket.nsp.name.length) },
+    });
+
+    const myUser = { id: userData.sub, exitedAt: null };
+    const otherUser =
+      chatRoom.users[0].id === myUser.id
+        ? { id: chatRoom.users[1].id, exitedAt: chatRoom.users[1].exitedAt }
+        : { id: chatRoom.users[0].id, exitedAt: chatRoom.users[0].exitedAt };
+
+    const updateUsers =
+      myUser.id < otherUser.id ? [myUser, otherUser] : [otherUser, myUser];
+
+    await this.chatRoomsRepository.update(chatRoom.id, {
+      users: updateUsers,
+    });
+    const getMessages = await this.dmsService.joinChatRoom(
+      socket.nsp.name.substring(4, socket.nsp.name.length),
+    );
+
+    socket.emit('getMessages', getMessages);
   }
 
   async handleDisconnect(@ConnectedSocket() socket: Socket) {

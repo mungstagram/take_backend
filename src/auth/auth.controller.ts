@@ -66,23 +66,28 @@ export class AuthController {
     res.status(201).send('Created');
   }
 
-  @Get('google')
-  @UseGuards(AuthGuard('google'))
-  async googleAuth(@Req() req) {}
+  // @Get('google')
+  // @UseGuards(AuthGuard('google'))
+  // async googleAuth(@Req() req) {}
 
-  @Get('google/redirect')
-  @UseGuards(AuthGuard('google'))
-  googleAuthRedirect(@Req() req) {
-    return this.authService.googleLogin(req.user);
-  }
+  // @Get('google/redirect')
+  // @UseGuards(AuthGuard('google'))
+  // googleAuthRedirect(@Req() req) {
+  //   return this.authService.googleLogin(req.user);
+  // }
 
-  @Get('kakao')
-  @UseGuards(AuthGuard('kakao'))
-  async kakaologin(@Req() req) {}
+  // @Get('kakao')
+  // @UseGuards(AuthGuard('kakao'))
+  // async kakaologin(@Req() req) {}
 
-  @Get('kakao/redirect')
-  @UseGuards(AuthGuard('kakao'))
-  kakaologinCallback(@Req() req) {
-    return this.authService.kakaoLogin(req.user);
-  }
+  // @Get('kakao/redirect')
+  // @UseGuards(AuthGuard('kakao'))
+  // kakaologinCallback(@Req() req) {
+  //   return this.authService.kakaoLogin(req.user);
+  // }
+
+  // @Post('kakao')
+  // async kakaoLogin(@Body() token: string) {
+  //   return await this.authService.kakaoLogin(token);
+  // }
 }
