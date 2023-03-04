@@ -145,6 +145,35 @@ export class AuthService {
     };
   }
 
+  async createNickname(userId: number, data: { nickname: string }) {
+    const nicknameRegexp = /^[a-zA-Z0-9]{3,15}$/g;
+    if (!nicknameRegexp.test(data.nickname)) {
+      throw new BadRequestException('올바르지 않은 데이터 형식입니다.');
+    }
+
+    const existNick = await this.usersRepository.findOne({
+      where: { nickname: data.nickname },
+    });
+
+    if (existNick)
+      throw new BadRequestException('이미지 존재하는 닉네임입니다.');
+
+    const updateNickname = await this.usersRepository.update(
+      { id: userId },
+      { nickname: data.nickname },
+    );
+
+    if (updateNickname.affected === 1) {
+      const userData = await this.usersRepository.findOne({
+        where: { id: userId },
+      });
+
+      return { nickname: userData.nickname };
+    } else {
+      throw new BadRequestException('닉네임 등록에 실패했습니다.');
+    }
+  }
+
   async kakaoAuth(kakaoRequestDto: KakaoRequestDto) {
     const getUserInfoUrl = 'https://kapi.kakao.com/v2/user/me';
     const axiosHeaders = {

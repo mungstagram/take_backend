@@ -254,7 +254,6 @@ export class PostsService {
               return b.createdAt.getTime() - a.createdAt.getTime();
             }
           }).map((comment) => {
-            console.log('야!', comment);
             return {
               id: comment.id,
               nickname: comment.User.nickname,

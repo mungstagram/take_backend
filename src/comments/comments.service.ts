@@ -1,3 +1,5 @@
+import { timeGap } from '../helper/timegap.helper';
+import { Files } from './../entities/Files';
 import { CommentDeleteRequestDto } from './dtos/comment.delete.dto';
 import { UsersService } from './../users/users.service';
 import { CommentCreateRequestDto } from './dtos/comment.create.request.dto';
@@ -10,6 +12,8 @@ import { CommentUpdateRequestDto } from './dtos/comment.update.dto';
 @Injectable()
 export class CommentsService {
   constructor(
+    @InjectRepository(Files, 'postgresql')
+    private readonly filesRepository: Repository<Files>,
     @InjectRepository(Comments, 'postgresql')
     private readonly commentsRepository: Repository<Comments>,
     private readonly usersService: UsersService,
@@ -24,7 +28,18 @@ export class CommentsService {
       commentCreateRequestDto.UserId,
     );
 
-    return { ...comment, nickname: user.nickname };
+    const profileImage = await this.filesRepository.findOne({
+      where: { id: user.FileId },
+    });
+
+    return {
+      id: comment.id,
+      userId: user.id,
+      comment: comment.comment,
+      nickname: user.nickname,
+      profileUrl: profileImage ? profileImage.contentUrl : '',
+      createAt: timeGap(comment.createdAt),
+    };
   }
 
   async updateComment(commentUpdateRequestDto: CommentUpdateRequestDto) {
@@ -38,8 +53,10 @@ export class CommentsService {
         'c.createdAt',
         'c.updatedAt',
         'u.nickname',
+        'uf.contentUrl',
       ])
       .leftJoin('c.User', 'u')
+      .leftJoin('u.File', 'uf')
       .where('c.id = :id', { id: commentUpdateRequestDto.id })
       .andWhere('u.id = :UserId', { UserId: commentUpdateRequestDto.UserId })
       .getOne();
@@ -53,9 +70,14 @@ export class CommentsService {
       comment: commentUpdateRequestDto.comment,
     });
 
-    const commentData = { ...comment, myComment: true };
-
-    return commentData;
+    return {
+      id: comment.id,
+      comment: comment.comment,
+      nickname: comment.User.nickname,
+      userId: comment.UserId,
+      profileUrl: comment.User.File ? comment.User.File['contentUrl'] : '',
+      createdAt: timeGap(comment.createdAt),
+    };
   }
 
   async deleteComment(commentDeleteRequestDto: CommentDeleteRequestDto) {

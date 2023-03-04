@@ -1,18 +1,31 @@
+import { JwtPayload } from './jwt/jwt.payload.dto';
+import { GetPayload } from './../common/dacorators/get.payload.decorator';
 import { KakaoRequestDto } from './dtos/kakao.request.dto';
 import { AuthService } from './auth.service';
 import { Request, Response } from 'express';
-import { Body, Controller, Post, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+  HttpCode,
+  Put,
+} from '@nestjs/common';
 import { LoginRequestDto } from './dtos/login.request.dto';
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiBody,
+  ApiCreatedResponse,
   ApiInternalServerErrorResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-
-type Profile = { id: string; provicer: string; email: string };
+import { JwtAuthGuard } from './jwt/jwt.guard';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -51,6 +64,28 @@ export class AuthController {
     res.status(201).send('Created');
   }
 
+  @ApiBearerAuth('Authorization')
+  @UseGuards(JwtAuthGuard)
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        nickname: { type: 'string' },
+      },
+    },
+  })
+  @HttpCode(201)
+  @ApiBadRequestResponse({ description: '닉네임 등록에 실패했을 경우' })
+  @ApiCreatedResponse({ description: '정상적으로 닉네임 등록됨' })
+  @Put('nickname')
+  async createNickname(
+    @GetPayload() payload: JwtPayload,
+    @Body() data: { nickname: string },
+  ) {
+    const userId = payload.sub;
+    return await this.authService.createNickname(userId, data);
+  }
+
   @ApiOperation({
     summary: 'RefreshToken을 이용하여 AccessToken을 재발급 하는 API',
   })
@@ -63,29 +98,4 @@ export class AuthController {
     res.setHeader('Authorization', `Bearer ${kakaoUser.authorization}`);
     res.json({ nickname: kakaoUser.nickname });
   }
-
-  // @Get('google')
-  // @UseGuards(AuthGuard('google'))
-  // async googleAuth(@Req() req) {}
-
-  // @Get('google/redirect')
-  // @UseGuards(AuthGuard('google'))
-  // googleAuthRedirect(@Req() req) {
-  //   return this.authService.googleLogin(req.user);
-  // }
-
-  // @Get('kakao')
-  // @UseGuards(AuthGuard('kakao'))
-  // async kakaologin(@Req() req) {}
-
-  // @Get('kakao/redirect')
-  // @UseGuards(AuthGuard('kakao'))
-  // kakaologinCallback(@Req() req) {
-  //   return this.authService.kakaoLogin(req.user);
-  // }
-
-  // @Post('kakao')
-  // async kakaoLogin(@Body() token: string) {
-  //   return await this.authService.kakaoLogin(token);
-  // }
 }

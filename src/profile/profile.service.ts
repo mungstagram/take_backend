@@ -283,9 +283,6 @@ export class ProfileService {
 
     // s3에 새로운 강아지 프로필 이미지 저장
     const category = 'dog';
-    // iles[0]
-    //   ? await this.awsService.fileUploads(files, category)
-    //   : [{ id: userData.FileId, contentUrl: userData.File['contentUrl'] }];
     const newDogImage = files[0]
       ? await this.awsService.fileUploads(files, category)
       : [{ id: dogData.id, contentUrl: dogData.File['contentUrl'] }];
