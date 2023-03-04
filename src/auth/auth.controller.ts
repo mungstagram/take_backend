@@ -1,9 +1,8 @@
-import { IsEmail } from 'class-validator';
 import { JwtPayload } from './jwt/jwt.payload.dto';
 import { GetPayload } from './../common/dacorators/get.payload.decorator';
+import { KakaoRequestDto } from './dtos/kakao.request.dto';
 import { AuthService } from './auth.service';
 import { Request, Response } from 'express';
-import { join } from 'path';
 import {
   Body,
   Controller,
@@ -11,13 +10,8 @@ import {
   Req,
   Res,
   UseGuards,
-  Get,
-  Redirect,
-  Query,
-  Param,
-  Header,
-  Put,
   HttpCode,
+  Put,
 } from '@nestjs/common';
 import { LoginRequestDto } from './dtos/login.request.dto';
 import {
@@ -31,12 +25,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { AuthGuard } from '@nestjs/passport';
 import { JwtAuthGuard } from './jwt/jwt.guard';
-
-interface PostData {
-  data: string;
-}
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -97,28 +86,16 @@ export class AuthController {
     return await this.authService.createNickname(userId, data);
   }
 
-  // @Get('google')
-  // @UseGuards(AuthGuard('google'))
-  // async googleAuth(@Req() req) {}
-
-  // @Get('google/redirect')
-  // @UseGuards(AuthGuard('google'))
-  // googleAuthRedirect(@Req() req) {
-  //   return this.authService.googleLogin(req.user);
-  // }
-
-  // @Get('kakao')
-  // @UseGuards(AuthGuard('kakao'))
-  // async kakaologin(@Req() req) {}
-
-  // @Get('kakao/redirect')
-  // @UseGuards(AuthGuard('kakao'))
-  // kakaologinCallback(@Req() req) {
-  //   return this.authService.kakaoLogin(req.user);
-  // }
-
-  // @Post('kakao')
-  // async kakaoLogin(@Body() token: string) {
-  //   return await this.authService.kakaoLogin(token);
-  // }
+  @ApiOperation({
+    summary: 'RefreshToken을 이용하여 AccessToken을 재발급 하는 API',
+  })
+  @Post('kakao')
+  async kakaoAuth(
+    @Body() kakaoRequestDto: KakaoRequestDto,
+    @Res() res: Response,
+  ) {
+    const kakaoUser = await this.authService.kakaoAuth(kakaoRequestDto);
+    res.setHeader('Authorization', `Bearer ${kakaoUser.authorization}`);
+    res.json({ nickname: kakaoUser.nickname });
+  }
 }

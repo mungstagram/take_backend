@@ -1,3 +1,5 @@
+import { timeGap } from '../helper/timegap.helper';
+import { Files } from './../entities/Files';
 import { CommentDeleteRequestDto } from './dtos/comment.delete.dto';
 import { UsersService } from './../users/users.service';
 import { CommentCreateRequestDto } from './dtos/comment.create.request.dto';
@@ -10,13 +12,15 @@ import { CommentUpdateRequestDto } from './dtos/comment.update.dto';
 @Injectable()
 export class CommentsService {
   constructor(
+    @InjectRepository(Files, 'postgresql')
+    private readonly filesRepository: Repository<Files>,
     @InjectRepository(Comments, 'postgresql')
     private readonly commentsRepository: Repository<Comments>,
     private readonly usersService: UsersService,
   ) {}
 
   async createComment(commentCreateRequestDto: CommentCreateRequestDto) {
-    await this.commentsRepository.insert({
+    const comment = await this.commentsRepository.save({
       ...commentCreateRequestDto,
     });
 
@@ -24,7 +28,18 @@ export class CommentsService {
       commentCreateRequestDto.UserId,
     );
 
-    return { ...commentCreateRequestDto, nickname: user.nickname };
+    const profileImage = await this.filesRepository.findOne({
+      where: { id: user.FileId },
+    });
+
+    return {
+      id: comment.id,
+      userId: user.id,
+      comment: comment.comment,
+      nickname: user.nickname,
+      profileUrl: profileImage.contentUrl,
+      createAt: timeGap(comment.createdAt),
+    };
   }
 
   async updateComment(commentUpdateRequestDto: CommentUpdateRequestDto) {
