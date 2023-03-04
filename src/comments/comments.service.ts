@@ -38,7 +38,7 @@ export class CommentsService {
       comment: comment.comment,
       nickname: user.nickname,
       profileUrl: profileImage ? profileImage.contentUrl : '',
-      createAt: timeGap(comment.createdAt),
+      createdAt: timeGap(comment.createdAt),
     };
   }
 
