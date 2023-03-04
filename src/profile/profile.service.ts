@@ -122,6 +122,10 @@ export class ProfileService {
       .where('u.nickname = :nickname', { nickname })
       .getOne();
 
+    if (!userData) {
+      throw new BadRequestException('해당 유저 데이터가 없습니다.');
+    }
+
     const allDogs = await this.dogsRepository
       .createQueryBuilder('d')
       .select([
@@ -138,10 +142,6 @@ export class ProfileService {
       .leftJoin('d.File', 'df')
       .where('d.UserId = :userId', { userId: userData.id })
       .getMany();
-
-    if (!userData) {
-      throw new BadRequestException('해당 유저 데이터가 없습니다.');
-    }
 
     const allDogsData = allDogs.map((dog) => {
       return {
