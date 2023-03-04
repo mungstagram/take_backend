@@ -132,11 +132,6 @@ export class ProfileController {
           example: '8.5',
           type: 'number',
         },
-        gender: {
-          description: '강아지 성별',
-          example: true,
-          type: 'boolean',
-        },
         birthday: {
           description: '강아지 태어난 날',
           example: '2022-02-18',

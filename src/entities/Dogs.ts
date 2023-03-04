@@ -33,9 +33,6 @@ export class Dogs {
   bringDate: Date;
 
   @Column({ type: 'boolean' })
-  gender: boolean;
-
-  @Column({ type: 'boolean' })
   representative: boolean;
 
   @Column({ type: 'text' })

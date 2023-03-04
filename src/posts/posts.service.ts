@@ -1,9 +1,9 @@
 import { Files } from 'src/entities/Files';
-import { AWSService } from './../../helper/fileupload.helper';
-import { JwtPayload } from './../../auth/jwt/jwt.payload.dto';
-import { PostLikes } from '../../entities/PostLikes';
-import { Posts } from '../../entities/Posts';
-import { PostsCreateRequestsDto } from './../dto/postscreate.request.dto';
+import { AWSService } from '../helper/fileupload.helper';
+import { JwtPayload } from '../auth/jwt/jwt.payload.dto';
+import { PostLikes } from '../entities/PostLikes';
+import { Posts } from '../entities/Posts';
+import { PostsCreateRequestsDto } from './dto/postscreate.request.dto';
 import {
   BadRequestException,
   ForbiddenException,
@@ -13,8 +13,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import * as AWS from 'aws-sdk';
 import { timeGap } from 'src/helper/timegap.helper';
-import { PostFiles } from '../../entities/PostFiles';
-import { Comments } from '../../entities/Comments';
+import { PostFiles } from '../entities/PostFiles';
+import { Comments } from '../entities/Comments';
 
 @Injectable()
 export class PostsService {
@@ -291,7 +291,6 @@ export class PostsService {
     postId: number,
     data: PostsCreateRequestsDto,
     payload: JwtPayload,
-    files: Array<Express.Multer.File>,
   ) {
     const { title, content, category } = data;
 
@@ -307,31 +306,9 @@ export class PostsService {
     if (!(postData.UserId === userId))
       throw new ForbiddenException('본인의 게시글만 수정 가능합니다');
 
-    const filesData = await this.awsService.fileUploads(files, category);
-    const contentUrl = filesData.map((v) => {
-      return v.contentUrl;
-    });
-
     // const queryRunnder = this.dataSource.createQueryRunner();
     // await queryRunnder.startTransaction();
     try {
-      const findContentId = await this.postFilesReposirory.find({
-        where: { PostId: postId },
-      });
-
-      const postFilesIds = findContentId.map((v) => v.id);
-
-      await this.postFilesReposirory.delete(postFilesIds);
-      const insertPostFilesData = filesData.map((v) => {
-        const mapData = new PostFiles();
-        mapData.PostId = postId;
-        mapData.FileId = v.id;
-
-        return mapData;
-      });
-
-      await this.postFilesReposirory.insert(insertPostFilesData);
-
       await this.postsRepository
         .createQueryBuilder()
         .update(Posts)
@@ -346,10 +323,22 @@ export class PostsService {
 
       // await queryRunnder.commitTransaction();
 
+      const postContentUrl = await this.postsRepository
+        .createQueryBuilder('p')
+        .select(['p.id', 'pf', 'pff.contentUrl'])
+        .leftJoin('p.PostFiles', 'pf')
+        .leftJoin('pf.File', 'pff')
+        .where('p.id = :postId', { postId: postId })
+        .getOne();
+
+      const contentUrl = postContentUrl.PostFiles.map((post) => {
+        return post.File.contentUrl;
+      });
+
       return {
         title,
         content,
-        contentUrl,
+        contentUrl: contentUrl,
         category,
       };
     } catch (error) {

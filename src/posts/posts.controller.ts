@@ -1,6 +1,6 @@
-import { GetPayload } from './../../common/dacorators/get.payload.decorator';
-import { JwtPayload } from './../../auth/jwt/jwt.payload.dto';
-import { PostsService } from './../services/posts.service';
+import { GetPayload } from '../common/dacorators/get.payload.decorator';
+import { JwtPayload } from '../auth/jwt/jwt.payload.dto';
+import { PostsService } from './posts.service';
 import {
   Body,
   Controller,
@@ -26,7 +26,7 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
-import { PostsCreateRequestsDto } from '../dto/postscreate.request.dto';
+import { PostsCreateRequestsDto } from './dto/postscreate.request.dto';
 import { FilesInterceptor } from '@nestjs/platform-express/multer';
 import { JwtAuthGuard } from 'src/auth/jwt/jwt.guard';
 
@@ -118,31 +118,14 @@ export class PostsController {
   @ApiOperation({ summary: '게시물 수정 api' })
   @ApiBearerAuth('Authorization')
   @UseGuards(JwtAuthGuard)
-  @ApiConsumes('multipart/form-data')
   @HttpCode(201)
   @Put(':postId')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        title: { type: 'string' },
-        content: { type: 'string' },
-        category: { type: 'string' },
-        files: {
-          type: 'string',
-          format: 'binary',
-        },
-      },
-    },
-  })
-  @UseInterceptors(FilesInterceptor('files', 5))
   async updatePost(
     @Body() data: PostsCreateRequestsDto,
     @Param('postId') postId: number,
     @GetPayload() payload: JwtPayload,
-    @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
-    return await this.postsService.updatePost(postId, data, payload, files);
+    return await this.postsService.updatePost(postId, data, payload);
   }
 
   //게시글 삭제 api
