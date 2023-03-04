@@ -18,7 +18,6 @@ import {
   ApiBody,
   ApiConsumes,
   ApiCreatedResponse,
-  ApiOkResponse,
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
@@ -51,11 +50,6 @@ export class DogsController {
           description: '견종',
           example: '스피츠',
           type: 'string',
-        },
-        gender: {
-          description: '성별',
-          example: true,
-          type: 'boolean',
         },
         weight: {
           description: '강아지 몸무게',

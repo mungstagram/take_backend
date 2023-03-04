@@ -1,16 +1,19 @@
+import { SignupReqeustDto } from './../users/dtos/signup.request.dto';
+import { UsersService } from './../users/users.service';
+import { KakaoRequestDto } from './dtos/kakao.request.dto';
 import { LoginRequestDto } from './dtos/login.request.dto';
 import { Users } from '../entities/Users';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   BadRequestException,
   Injectable,
-  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcrypt';
 import { Tokens } from '../entities/Tokens';
+import axios from 'axios';
 
 @Injectable()
 export class AuthService {
@@ -20,6 +23,7 @@ export class AuthService {
     @InjectRepository(Tokens, 'postgresql')
     private readonly tokensRepository: Repository<Tokens>,
     private readonly jwtService: JwtService,
+    private readonly usersService: UsersService,
   ) {}
 
   async tokenFindByUserId(UserId: number) {
@@ -139,5 +143,48 @@ export class AuthService {
       message: 'User information from kakao',
       user: token,
     };
+  }
+
+  async kakaoAuth(kakaoRequestDto: KakaoRequestDto) {
+    const getUserInfoUrl = 'https://kapi.kakao.com/v2/user/me';
+    const axiosHeaders = {
+      'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8',
+      Authorization: `Bearer ${kakaoRequestDto.accessToken}`,
+    };
+
+    const res = await axios({
+      method: 'GET',
+      url: getUserInfoUrl,
+      timeout: 100000,
+      headers: axiosHeaders,
+    });
+
+    const kakaoId = res.data.id;
+
+    const user = await this.usersRepository.findOne({
+      where: { email: kakaoId },
+    });
+
+    if (!user) {
+      const newUserData = new SignupReqeustDto();
+      newUserData.email = kakaoId;
+      newUserData.provider = 'kakao';
+
+      const newUser = await this.usersService.signup(newUserData);
+
+      const accessToken = await this.jwtService.signAsync(
+        { sub: newUser.id },
+        { secret: process.env.JWT_ACCESS_SECRET, expiresIn: '1d' },
+      );
+
+      return { nickname: null, authorization: accessToken };
+    }
+
+    const accessToken = await this.jwtService.signAsync(
+      { sub: user.id },
+      { secret: process.env.JWT_ACCESS_SECRET, expiresIn: '1d' },
+    );
+
+    return { nickname: user.nickname, authorization: accessToken };
   }
 }
