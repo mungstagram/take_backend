@@ -1,5 +1,5 @@
 import { WebSocketExceptionFilter } from './../common/filter/ws.exception.filter';
-import { timeGap } from 'src/helper/timegap.helper';
+import { mongoTimeGap } from '../helper/timegap.helper';
 import { JwtService } from '@nestjs/jwt';
 import { JwtPayload } from './../auth/jwt/jwt.payload.dto';
 import { DmsService } from './../dms/dms.service';
@@ -19,7 +19,6 @@ import { Chattings } from '../entities/mongo/Chattings';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Users } from '../entities/Users';
 import { MongoRepository, Repository } from 'typeorm';
-import { WsException } from '@nestjs/websockets/errors';
 
 const users: object[] = [];
 
@@ -249,35 +248,46 @@ export class ChatRoomsGateway implements OnGatewayConnection {
         .toArray();
 
       const myUserId = userData.sub;
-      const otherUsers = lastChats.map((v) => {
-        return v.lastChat['room'][0]['users'][0]['id'] === myUserId
-          ? {
-              id: v.lastChat['room'][0]['users'][1]['id'],
-              exitedAt: v.lastChat['room'][0]['users'][1]['exitedAt'],
-            }
-          : {
-              id: v.lastChat['room'][0]['users'][0]['id'],
-              exitedAt: v.lastChat['room'][0]['users'][0]['exitedAt'],
-            };
-      });
-      const otherUserIds = otherUsers.map((v) => v.id);
 
-      const users = await this.usersRepository
-        .createQueryBuilder('u')
-        .select(['u.id', 'u.nickname', 'uf.contentUrl'])
-        .leftJoin('u.File', 'uf')
-        .where('u.id In (:...ids)', { ids: otherUserIds })
-        .getMany();
+      const chatRooms = await Promise.all(
+        lastChats.map(async (v) => {
+          const otherUser =
+            v.lastChat['room'][0]['users'][0]['id'] === myUserId
+              ? {
+                  id: v.lastChat['room'][0]['users'][1]['id'],
+                  exitedAt: v.lastChat['room'][0]['users'][1]['exitedAt'],
+                }
+              : {
+                  id: v.lastChat['room'][0]['users'][0]['id'],
+                  exitedAt: v.lastChat['room'][0]['users'][0]['exitedAt'],
+                };
+          const myExitedAt =
+            v.lastChat['room'][0]['users'][0]['id'] === myUserId
+              ? v.lastChat['room'][0]['users'][0]['exitedAt']
+              : v.lastChat['room'][0]['users'][1]['exitedAt'];
 
-      const chatRooms = lastChats.map((v, i) => {
-        return {
-          roomId: v.lastChat.RoomId,
-          nickname: users[i].nickname,
-          lastChat: v.lastChat.message,
-          profileUrl: users[i].File['contentUrl'],
-          timeGap: timeGap(v.lastChat.createdAt),
-        };
-      });
+          const user = await this.usersRepository
+            .createQueryBuilder('u')
+            .select(['u.id', 'u.nickname', 'uf.contentUrl'])
+            .leftJoin('u.File', 'uf')
+            .where('u.id = :userId', { userId: otherUser.id })
+            .getOne();
+
+          const unreadCount = await this.chattingsRepository.count({
+            RoomId: v.lastChat.RoomId,
+            createdAt: { $gt: myExitedAt },
+          });
+
+          return {
+            roomId: v.lastChat.RoomId,
+            nickname: user.nickname,
+            lastChat: v.lastChat.message,
+            profileUrl: user.File['contentUrl'],
+            unreadCount: unreadCount,
+            timeGap: mongoTimeGap(v.lastChat.createdAt),
+          };
+        }),
+      );
 
       socket.emit('DMList', chatRooms);
     } catch (error) {

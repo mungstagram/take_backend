@@ -38,8 +38,15 @@ export class DmsService {
             { id: popupChatRoomDto.senderId, exitedAt: new Date() },
           ];
 
+    const userIds = [popupChatRoomDto.senderId, popupChatRoomDto.receiverId];
     const chatRoomsExist = await this.chatRoomsRepository.findOne({
-      where: { users },
+      where: {
+        users: {
+          $all: userIds.map((id) => ({
+            $elemMatch: { id },
+          })),
+        },
+      },
     });
 
     if (!chatRoomsExist) {
