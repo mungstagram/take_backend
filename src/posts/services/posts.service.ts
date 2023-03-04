@@ -134,8 +134,10 @@ export class PostsService {
         'p.createdAt',
         'pl',
         'f.contentUrl',
+        'uf.contentUrl',
       ])
       .leftJoin('p.User', 'u')
+      .leftJoin('u.File', 'uf')
       .leftJoin('p.PostLikes', 'pl')
       .leftJoinAndSelect('p.PostFiles', 'pf')
       .leftJoin('pf.File', 'f')
@@ -150,37 +152,29 @@ export class PostsService {
       throw new BadRequestException('게시글 조회에 실패했습니다.');
     }
 
-    const data = await Promise.all(
-      allPosts.map(async (post) => {
-        const isLiked = post.PostLikes.filter((v) => {
-          if (v.UserId === userId) return v;
-        });
+    const data = allPosts.map((post) => {
+      const isLiked = post.PostLikes.filter((v) => {
+        if (v.UserId === userId) return v;
+      });
 
-        const newTimeGap = timeGap(post.createdAt);
+      const newTimeGap = timeGap(post.createdAt);
 
-        const contentUrl = post['PostFiles'].map(
-          (v) => v['File']['contentUrl'],
-        );
+      const contentUrl = post['PostFiles'].map((v) => v['File']['contentUrl']);
 
-        const profileUrl = await this.filesRepository.findOne({
-          where: { id: post.User.FileId },
-        });
-
-        return {
-          postId: post.id,
-          nickname: post.User.nickname,
-          profileUrl: profileUrl.contentUrl,
-          title: post.title,
-          content: post.content,
-          contentUrl: contentUrl,
-          category: post.category,
-          commentCount: post['commentsCount'],
-          likesCount: post['likesCount'],
-          createdAt: newTimeGap,
-          isLiked: isLiked.length !== 0 ? true : false,
-        };
-      }),
-    );
+      return {
+        postId: post.id,
+        nickname: post.User.nickname,
+        profileUrl: post.User.File ? post.User.File['contentUrl'] : '',
+        title: post.title,
+        content: post.content,
+        contentUrl: contentUrl,
+        category: post.category,
+        commentCount: post['commentsCount'],
+        likesCount: post['likesCount'],
+        createdAt: newTimeGap,
+        isLiked: isLiked.length !== 0 ? true : false,
+      };
+    });
 
     if (order === 'likescount') {
       data.sort((a, b) => {
@@ -201,59 +195,33 @@ export class PostsService {
     try {
       const userId = payload.sub;
 
-      const isExistComments = await this.commentsRepository.findOne({
-        where: { PostId: postId },
-      });
-
-      const onePost = isExistComments
-        ? await this.postsRepository
-            .createQueryBuilder('p')
-            .select([
-              'p.id',
-              'p.title',
-              'p.content',
-              'p.category',
-              'u.nickname',
-              'p.createdAt',
-              'pl',
-              'f.contentUrl',
-              'uf.contentUrl',
-              'cuf.contentUrl',
-              'cu.FileId',
-            ])
-            .leftJoin('p.User', 'u')
-            .leftJoinAndSelect('p.PostFiles', 'pf')
-            .leftJoin('pf.File', 'f')
-            .leftJoin('p.PostLikes', 'pl')
-            .leftJoin('u.File', 'uf')
-            .leftJoinAndSelect('p.Comments', 'c')
-            .leftJoin('c.User', 'cu')
-            .leftJoin('cu.File', 'cuf')
-            .loadRelationCountAndMap('p.PostLikes', 'p.PostLikes')
-            .where('p.id=:postId', { postId: postId })
-            .getOne()
-        : await this.postsRepository
-            .createQueryBuilder('p')
-            .select([
-              'p.id',
-              'p.title',
-              'p.content',
-              'p.category',
-              'u.nickname',
-              'p.createdAt',
-              'pl',
-              'f.contentUrl',
-              'uf.contentUrl',
-            ])
-            .leftJoin('p.User', 'u')
-            .leftJoinAndSelect('p.PostFiles', 'pf')
-            .leftJoin('pf.File', 'f')
-            .leftJoin('p.PostLikes', 'pl')
-            .leftJoin('u.File', 'uf')
-            .leftJoinAndSelect('p.Comments', 'c')
-            .loadRelationCountAndMap('p.PostLikes', 'p.PostLikes')
-            .where('p.id=:postId', { postId: postId })
-            .getOne();
+      const onePost = await this.postsRepository
+        .createQueryBuilder('p')
+        .select([
+          'p.id',
+          'p.title',
+          'p.content',
+          'p.category',
+          'u.nickname',
+          'p.createdAt',
+          'pl',
+          'f.contentUrl',
+          'uf.contentUrl',
+          'cuf.contentUrl',
+          'cu.nickname',
+          'cu.FileId',
+        ])
+        .leftJoin('p.User', 'u')
+        .leftJoinAndSelect('p.PostFiles', 'pf')
+        .leftJoin('pf.File', 'f')
+        .leftJoin('p.PostLikes', 'pl')
+        .leftJoin('u.File', 'uf')
+        .leftJoinAndSelect('p.Comments', 'c')
+        .leftJoin('c.User', 'cu')
+        .leftJoin('cu.File', 'cuf')
+        .loadRelationCountAndMap('p.PostLikes', 'p.PostLikes')
+        .where('p.id=:postId', { postId: postId })
+        .getOne();
 
       if (!onePost) {
         throw new BadRequestException('해당 게시물이 없습니다.');
@@ -270,8 +238,12 @@ export class PostsService {
         (v) => v['File']['contentUrl'],
       );
 
+      const isExistComments = await this.commentsRepository.findOne({
+        where: { PostId: postId },
+      });
+
       const sortedComments = isExistComments
-        ? onePost.Comments?.sort((a, b) => {
+        ? onePost.Comments.sort((a, b) => {
             if (onePost.Comments.length === 0) {
               return undefined;
             }
@@ -281,13 +253,15 @@ export class PostsService {
             ) {
               return b.createdAt.getTime() - a.createdAt.getTime();
             }
-          })?.map((comment) => {
+          }).map((comment) => {
             return {
               id: comment.id,
               nickname: comment.User.nickname,
               comment: comment.comment,
               userId: comment.UserId,
-              profileUrl: comment.User?.File['contentUrl'] ?? '',
+              profileUrl: comment.User.File
+                ? comment.User?.File['contentUrl']
+                : '',
               createdAt: timeGap(comment.createdAt),
             };
           })
@@ -296,7 +270,7 @@ export class PostsService {
       return {
         postId: onePost.id,
         nickname: onePost.User.nickname,
-        profileUrl: onePost.User['File']['contentUrl'],
+        profileUrl: onePost.User.File ? onePost.User.File['contentUrl'] : '',
         title: onePost.title,
         content: onePost.content,
         contentUrl: contentUrl,

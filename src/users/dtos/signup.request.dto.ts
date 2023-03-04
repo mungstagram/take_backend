@@ -27,8 +27,6 @@ export class SignupReqeustDto {
   public name: string;
 
   public provider: string;
-
-  public profile_image: string;
 }
 
 export class UserDataRequestsDto extends SignupReqeustDto {}

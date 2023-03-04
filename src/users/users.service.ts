@@ -26,7 +26,6 @@ export class UsersService {
   }
 
   async signup(data: SignupReqeustDto) {
-    console.log(data);
     const email = await this.usersRepository.findOne({
       where: { email: data.email },
     });
@@ -37,20 +36,21 @@ export class UsersService {
       where: { nickname: data.nickname },
     });
 
-    if (nickname) throw new ConflictException('이미 존재하는 닉네임 입니다.');
+    if (nickname && data.provider === 'local')
+      throw new ConflictException('이미 존재하는 닉네임 입니다.');
 
-    const hashedPassword = await bcrypt.hash(data.password, 12);
+    const hashedPassword =
+      data.provider === 'local' ? await bcrypt.hash(data.password, 12) : null;
 
-    await this.usersRepository.insert({
+    const insertedUser = await this.usersRepository.insert({
       email: data.email,
       name: data.name,
       nickname: data.nickname,
-      password: hashedPassword,
+      password: data.provider === 'local' ? hashedPassword : 'KAKAO',
       provider: data.provider,
-      // contentUrl: data.profile_image,
     });
 
-    return 'Created';
+    return { id: insertedUser.identifiers[0].id };
   }
 
   async check(userCheckRequestDto: UserCheckRequestDto) {

@@ -1,3 +1,4 @@
+import { Files } from './../entities/Files';
 import { CommentsController } from './comments.controller';
 import { Users } from '../entities/Users';
 import { UsersModule } from './../users/users.module';
@@ -10,7 +11,7 @@ import postgresDataSource from 'dataSource';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Comments, Users], postgresDataSource),
+    TypeOrmModule.forFeature([Comments, Users, Files], postgresDataSource),
     AuthModule,
     UsersModule,
   ],
