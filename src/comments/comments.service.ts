@@ -37,7 +37,7 @@ export class CommentsService {
       userId: user.id,
       comment: comment.comment,
       nickname: user.nickname,
-      profileUrl: profileImage.contentUrl,
+      profileUrl: profileImage ? profileImage.contentUrl : '',
       createAt: timeGap(comment.createdAt),
     };
   }
@@ -53,8 +53,10 @@ export class CommentsService {
         'c.createdAt',
         'c.updatedAt',
         'u.nickname',
+        'uf.contentUrl',
       ])
       .leftJoin('c.User', 'u')
+      .leftJoin('u.File', 'uf')
       .where('c.id = :id', { id: commentUpdateRequestDto.id })
       .andWhere('u.id = :UserId', { UserId: commentUpdateRequestDto.UserId })
       .getOne();
@@ -68,9 +70,14 @@ export class CommentsService {
       comment: commentUpdateRequestDto.comment,
     });
 
-    const commentData = { ...comment, myComment: true };
-
-    return commentData;
+    return {
+      id: comment.id,
+      comment: comment.comment,
+      nickname: comment.User.nickname,
+      userId: comment.UserId,
+      profileUrl: comment.User.File ? comment.User.File['contentUrl'] : '',
+      createdAt: timeGap(comment.createdAt),
+    };
   }
 
   async deleteComment(commentDeleteRequestDto: CommentDeleteRequestDto) {
