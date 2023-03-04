@@ -24,9 +24,6 @@ export class DogRequestDto {
   @ApiProperty({ example: '2013-06-08', description: '강아지 데리고 온 날' })
   public bringDate: Date;
 
-  @ApiProperty({ example: true, description: 'true 남 false 여' })
-  public gender: boolean;
-
   @ApiProperty({ example: '우리 강아지는 멋져', description: '강아지 소개' })
   public introduce: string;
 }

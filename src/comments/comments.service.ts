@@ -16,7 +16,7 @@ export class CommentsService {
   ) {}
 
   async createComment(commentCreateRequestDto: CommentCreateRequestDto) {
-    await this.commentsRepository.insert({
+    const comment = await this.commentsRepository.save({
       ...commentCreateRequestDto,
     });
 
@@ -24,7 +24,7 @@ export class CommentsService {
       commentCreateRequestDto.UserId,
     );
 
-    return { ...commentCreateRequestDto, nickname: user.nickname };
+    return { ...comment, nickname: user.nickname };
   }
 
   async updateComment(commentUpdateRequestDto: CommentUpdateRequestDto) {

@@ -21,6 +21,12 @@ export class DmsService {
   ) {}
 
   async popupChatRoom(popupChatRoomDto: PopupChatRoomDto) {
+    const user = await this.usersRepository.findOne({
+      where: { nickname: popupChatRoomDto.receiverNickname },
+    });
+
+    popupChatRoomDto.receiverId = user.id;
+
     const users =
       popupChatRoomDto.senderId < popupChatRoomDto.receiverId
         ? [

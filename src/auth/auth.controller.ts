@@ -1,19 +1,7 @@
+import { KakaoRequestDto } from './dtos/kakao.request.dto';
 import { AuthService } from './auth.service';
 import { Request, Response } from 'express';
-import { join } from 'path';
-import {
-  Body,
-  Controller,
-  Post,
-  Req,
-  Res,
-  UseGuards,
-  Get,
-  Redirect,
-  Query,
-  Param,
-  Header,
-} from '@nestjs/common';
+import { Body, Controller, Post, Req, Res } from '@nestjs/common';
 import { LoginRequestDto } from './dtos/login.request.dto';
 import {
   ApiBearerAuth,
@@ -23,11 +11,8 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { AuthGuard } from '@nestjs/passport';
 
-interface PostData {
-  data: string;
-}
+type Profile = { id: string; provicer: string; email: string };
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -64,6 +49,19 @@ export class AuthController {
     console.log(accessToken);
     res.setHeader('Authorization', `Bearer ${accessToken}`);
     res.status(201).send('Created');
+  }
+
+  @ApiOperation({
+    summary: 'RefreshToken을 이용하여 AccessToken을 재발급 하는 API',
+  })
+  @Post('kakao')
+  async kakaoAuth(
+    @Body() kakaoRequestDto: KakaoRequestDto,
+    @Res() res: Response,
+  ) {
+    const kakaoUser = await this.authService.kakaoAuth(kakaoRequestDto);
+    res.setHeader('Authorization', `Bearer ${kakaoUser.authorization}`);
+    res.json({ nickname: kakaoUser.nickname });
   }
 
   // @Get('google')
