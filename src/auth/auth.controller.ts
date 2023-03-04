@@ -1,3 +1,6 @@
+import { IsEmail } from 'class-validator';
+import { JwtPayload } from './jwt/jwt.payload.dto';
+import { GetPayload } from './../common/dacorators/get.payload.decorator';
 import { AuthService } from './auth.service';
 import { Request, Response } from 'express';
 import { join } from 'path';
@@ -13,10 +16,15 @@ import {
   Query,
   Param,
   Header,
+  Put,
+  HttpCode,
 } from '@nestjs/common';
 import { LoginRequestDto } from './dtos/login.request.dto';
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiBody,
+  ApiCreatedResponse,
   ApiInternalServerErrorResponse,
   ApiOkResponse,
   ApiOperation,
@@ -24,6 +32,7 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { JwtAuthGuard } from './jwt/jwt.guard';
 
 interface PostData {
   data: string;
@@ -64,6 +73,28 @@ export class AuthController {
     console.log(accessToken);
     res.setHeader('Authorization', `Bearer ${accessToken}`);
     res.status(201).send('Created');
+  }
+
+  @ApiBearerAuth('Authorization')
+  @UseGuards(JwtAuthGuard)
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        nickname: { type: 'string' },
+      },
+    },
+  })
+  @HttpCode(201)
+  @ApiBadRequestResponse({ description: '닉네임 등록에 실패했을 경우' })
+  @ApiCreatedResponse({ description: '정상적으로 닉네임 등록됨' })
+  @Put('nickname')
+  async createNickname(
+    @GetPayload() payload: JwtPayload,
+    @Body() data: { nickname: string },
+  ) {
+    const userId = payload.sub;
+    return await this.authService.createNickname(userId, data);
   }
 
   // @Get('google')
