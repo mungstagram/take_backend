@@ -7,6 +7,7 @@ import {
   ApiOperation,
   ApiQuery,
   ApiBearerAuth,
+  ApiTags,
 } from '@nestjs/swagger';
 import { Controller, Get, HttpCode, Query, UseGuards } from '@nestjs/common';
 import { SearchesService } from './searches.service';
@@ -15,6 +16,7 @@ import { SearchesService } from './searches.service';
 export class SearchesController {
   constructor(private readonly searchesService: SearchesService) {}
 
+  @ApiTags('searches')
   @ApiOperation({ summary: '유저 검색 api' })
   @ApiBadRequestResponse({
     description: '카테고리 혹은 검색 내용을 보내지 않았을 경우',
