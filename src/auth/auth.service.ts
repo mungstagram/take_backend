@@ -146,7 +146,7 @@ export class AuthService {
   }
 
   async createNickname(userId: number, data: { nickname: string }) {
-    const nicknameRegexp = /^[a-zA-Z0-9]{3,15}$/g;
+    const nicknameRegexp = /^[a-zA-Z0-9]{3,10}$/g;
     if (!nicknameRegexp.test(data.nickname)) {
       throw new BadRequestException('올바르지 않은 데이터 형식입니다.');
     }
