@@ -286,7 +286,7 @@ export class ChatRoomsGateway implements OnGatewayConnection {
             roomId: v.lastChat.RoomId,
             nickname: user.nickname,
             lastChat: v.lastChat.message,
-            profileUrl: user.File['contentUrl'],
+            profileUrl: user.File ? user.File['contentUrl'] : '',
             unreadCount: unreadCount,
             timeGap: mongoTimeGap(v.lastChat.createdAt),
           };
