@@ -1,3 +1,4 @@
+import { DogUpdateRequestsDto } from './dto/dogupdate.request.dto';
 import { join } from 'path';
 import { Files } from '../entities/Files';
 import { UserCheckRequestDto } from './../users/dtos/user.reqeust.dto';
@@ -186,6 +187,11 @@ export class ProfileService {
     files: Array<Express.Multer.File>,
     data: { introduce: string; changeNickname: string },
   ) {
+    const nicknameRegexp = /^[a-zA-Z0-9]{3,10}$/g;
+
+    if (!nicknameRegexp.test(nickname))
+      throw new BadRequestException('올바르지 않은 닉네임 형식입니다.');
+
     const userData = await this.usersRepository
       .createQueryBuilder('u')
       .select(['u.id', 'u.nickname', 'u.introduce', 'uf.contentUrl'])
@@ -238,7 +244,7 @@ export class ProfileService {
     id: number,
     userId: number,
     files: Array<Express.Multer.File>,
-    data,
+    data: DogUpdateRequestsDto,
   ) {
     //강아지 정보 받아오고 에러처리
     const dogData = await this.dogsRepository
