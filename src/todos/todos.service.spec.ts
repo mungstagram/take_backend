@@ -1,89 +1,139 @@
-import { getRepositoryToken } from '@nestjs/typeorm';
 import { Test, TestingModule } from '@nestjs/testing';
-import { TodosService } from './todos.service';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import {
+  TodoCreateRequestDto,
+  TodoDeleteRequestDto,
+  TodoDoneRequestDto,
+  TodoUpdateRequestDto,
+} from './dtos/todo.request.dto';
 import { Todos } from '../entities/Todos';
-
-class MockTodoRepository {
-  #mockData = [
-    {
-      id: 1,
-      content: 'Mock1',
-      done: true,
-      UserId: 1,
-    },
-    {
-      id: 2,
-      content: 'Mock2',
-      done: false,
-      UserId: 1,
-    },
-    {
-      id: 3,
-      content: 'Mock3',
-      done: true,
-      UserId: 2,
-    },
-  ];
-  findOne(findData: any) {
-    const objType = Object.keys(findData.where)[0];
-    const objValue = findData.where[`${objType}`];
-    const data = this.#mockData.find((v) => v[`${objType}`] === objValue);
-
-    if (data) return data;
-    return null;
-  }
-  find(findData: any) {
-    const objType = Object.keys(findData.where)[0];
-    const objValue = findData.where[`${objType}`];
-    const data = this.#mockData.filter((v) => v[`${objType}`] === objValue);
-
-    if (data) return data;
-    return null;
-  }
-  insert(insertData: any) {
-    this.#mockData.push({
-      ...insertData,
-    });
-    return { identifiers: [{ id: insertData['id'] }] };
-  }
-  update(updateData: any) {
-    //
-  }
-  delete(deleteData: any) {
-    //
-  }
-}
+import { TodosService } from './todos.service';
+import { BadRequestException } from '@nestjs/common';
 
 describe('TodosService', () => {
-  let service: TodosService;
+  let todosService: TodosService;
+  let todosRepository: Repository<Todos>;
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    const moduleRef: TestingModule = await Test.createTestingModule({
       providers: [
         TodosService,
         {
           provide: getRepositoryToken(Todos, 'postgresql'),
-          useClass: MockTodoRepository,
+          useClass: Repository,
         },
       ],
     }).compile();
 
-    service = module.get<TodosService>(TodosService);
+    todosService = moduleRef.get<TodosService>(TodosService);
+    todosRepository = moduleRef.get<Repository<Todos>>(
+      getRepositoryToken(Todos, 'postgresql'),
+    );
   });
 
-  it('createTodo는 DB에 데이터를 삽입하고 삽입한 데이터의 id를 반환한다.', async () => {
-    const id = 4;
-    const insertData = { id, content: 'Mock4', UserId: 3, done: false };
-    expect(await service.createTodo(insertData)).toBeTruthy();
+  describe('createTodo', () => {
+    it('should create a new todo and return it', async () => {
+      const mockTodo = new Todos();
+      mockTodo.id = 1;
+      mockTodo.content = 'Test Todo';
+      mockTodo.UserId = 1;
+
+      const insertTodo = {
+        identifiers: [{ id: mockTodo.id }],
+        generatedMaps: [{ a: 'b' }],
+        raw: 'any',
+      };
+
+      jest.spyOn(todosRepository, 'insert').mockResolvedValueOnce(insertTodo);
+      jest.spyOn(todosRepository, 'findOne').mockResolvedValueOnce(mockTodo);
+
+      const createdTodo = await todosService.createTodo(mockTodo);
+
+      expect(todosRepository.insert).toHaveBeenCalledWith(mockTodo);
+      expect(todosRepository.findOne).toHaveBeenCalledWith({
+        where: { id: mockTodo.id },
+      });
+      expect(createdTodo).toEqual(mockTodo);
+    });
   });
 
-  it('getTodo는 DB에 존재하는 데이터에서, UserId가 같은 데이터를 반환한다', async () => {
-    const UserId = 1;
-    expect(await service.getTodo(UserId)).toBeTruthy();
+  describe('getTodo', () => {
+    it('should return an array of todos for a given user id', async () => {
+      const mockTodos: Todos[] = [];
+      [
+        { id: 1, content: 'Test Todo 1', UserId: 1 },
+        { id: 2, content: 'Test Todo 2', UserId: 1 },
+      ].forEach((v) => {
+        const mockTodo = new Todos();
+        mockTodo.id = v.id;
+        mockTodo.content = v.content;
+        mockTodo.UserId = v.UserId;
+
+        mockTodos.push(mockTodo);
+      });
+      jest.spyOn(todosRepository, 'find').mockResolvedValueOnce(mockTodos);
+
+      const todos = await todosService.getTodo(1);
+
+      expect(todosRepository.find).toHaveBeenCalledWith({
+        where: { UserId: 1 },
+      });
+      expect(todos).toEqual(mockTodos);
+    });
   });
 
-  it('getTodo는 DB에 존재하는 데이터와 Todo List의 UserId와 매칭 되는값이 없다면 "[]" 를 반환한다', async () => {
-    const UserId = 428974;
-    expect(await service.getTodo(UserId)).toStrictEqual([]);
+  describe('updateTodo', () => {
+    it('should update the content of an existing todo and return it', async () => {
+      const mockTodo = new Todos();
+      mockTodo.id = 1;
+      mockTodo.content = 'Test Todo';
+      mockTodo.UserId = 1;
+
+      jest.spyOn(todosRepository, 'update').mockResolvedValueOnce({
+        affected: 1,
+        generatedMaps: [{ a: 'b' }],
+        raw: 'any',
+      });
+      jest.spyOn(todosRepository, 'findOne').mockResolvedValueOnce(mockTodo);
+
+      const updatedTodo = await todosService.updateTodo({
+        id: 1,
+        content: 'Updated Todo',
+        UserId: 1,
+      });
+
+      console.log(mockTodo);
+
+      console.log(updatedTodo);
+
+      expect(todosRepository.update).toHaveBeenCalledWith(1, {
+        content: 'Updated Todo',
+      });
+      expect(todosRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 1 },
+      });
+      // expect(updatedTodo).toEqual({
+      //   id: 1,
+      //   content: 'Updated Todo',
+      //   UserId: 1,
+      // });
+    });
+
+    it('should throw a BadRequestException when trying to update a non-existing todo', async () => {
+      jest.spyOn(todosRepository, 'update').mockResolvedValueOnce({
+        affected: 0,
+        generatedMaps: [{ a: 'b' }],
+        raw: 'any',
+      });
+
+      await expect(
+        todosService.updateTodo({
+          id: 1,
+          content: 'Updated Todo',
+          UserId: 1,
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
   });
 });

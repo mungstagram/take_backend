@@ -20,8 +20,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Users } from '../entities/Users';
 import { MongoRepository, Repository } from 'typeorm';
 
-const users: object[] = [];
-
 @WebSocketGateway(3001, {
   namespace: /dm\/.[a-zA-Z0-9]/g,
   cors: {
@@ -43,6 +41,8 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {}
   @WebSocketServer() public server: Server;
 
+  private users: object[] = [];
+
   async tokenValidate(token: string) {
     try {
       const data = await this.jwtService.verifyAsync(token, {
@@ -60,7 +60,7 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     Logger.log(socket.nsp.name, 'Connected');
 
-    if (!users.length) {
+    if (!this.users.length) {
       const chatRoomUsers = await this.chatRoomsRepository.findOne({
         where: {
           roomId: socket.nsp.name.substring(4, socket.nsp.name.length),
@@ -76,8 +76,8 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
         .orWhere('u.id = :user1', { user1: chatRoomUsers.users[1].id })
         .getMany();
 
-      users.push(usersNickname[0]);
-      users.push(usersNickname[1]);
+      this.users.push(usersNickname[0]);
+      this.users.push(usersNickname[1]);
     }
 
     const chatRoom = await this.chatRoomsRepository.findOne({
@@ -89,6 +89,8 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
       chatRoom.users[0].id === myUser.id
         ? { id: chatRoom.users[1].id, exitedAt: chatRoom.users[1].exitedAt }
         : { id: chatRoom.users[0].id, exitedAt: chatRoom.users[0].exitedAt };
+
+    console.log(chatRoom, otherUser);
 
     const updateUsers =
       myUser.id < otherUser.id ? [myUser, otherUser] : [otherUser, myUser];
@@ -121,6 +123,7 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
       myUser.id < otherUser.id ? [myUser, otherUser] : [otherUser, myUser];
 
     await this.chatRoomsRepository.update(chatRoom.id, { users: updateUsers });
+    this.users = [];
   }
 
   @SubscribeMessage('dm')
@@ -134,14 +137,14 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const userId = userData.sub;
 
       const sender =
-        userId === users[0]['id']
-          ? { id: users[0]['id'], nickname: users[0]['nickname'] }
-          : { id: users[1]['id'], nickname: users[1]['nickname'] };
+        userId === this.users[0]['id']
+          ? { id: this.users[0]['id'], nickname: this.users[0]['nickname'] }
+          : { id: this.users[1]['id'], nickname: this.users[1]['nickname'] };
 
       const receiver =
-        userId !== users[0]['id']
-          ? { id: users[0]['id'], nickname: users[0]['nickname'] }
-          : { id: users[1]['id'], nickname: users[1]['nickname'] };
+        userId !== this.users[0]['id']
+          ? { id: this.users[0]['id'], nickname: this.users[0]['nickname'] }
+          : { id: this.users[1]['id'], nickname: this.users[1]['nickname'] };
 
       const now = new Date();
 
@@ -153,6 +156,7 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
         RoomId: socket.nsp.name.substring(4, socket.nsp.name.length),
         createdAt: now,
       });
+      console.log(sender, receiver);
 
       socket.emit('newDM', {
         ...data,

@@ -20,6 +20,10 @@ export class SearchesService {
 
     const keyword = query.search.replace(/\s/g, '');
 
+    console.log(keyword);
+    console.log(query.search);
+    console.log(`%${query.search}%`);
+
     if (query.category === 'users') {
       const searchedData = await this.usersRepository
         .createQueryBuilder('u')
@@ -33,7 +37,7 @@ export class SearchesService {
           userId: user.id,
           nickname: user.nickname,
           introduce: user.introduce ? user.introduce : '',
-          contentUrl: user.File['contentUrl'] ? user.File['contentUrl'] : [],
+          contentUrl: user.File ? user.File['contentUrl'] : null,
         };
       });
 
