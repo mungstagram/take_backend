@@ -20,6 +20,10 @@ export class AWSService {
       region: process.env.AWS_S3_REGION,
     });
 
+    if (files.length === 0) {
+      throw new BadRequestException('업로드할 이미지가 없습니다.');
+    }
+
     const result = await Promise.all(
       files.map(async (file) => {
         const hashSum = createHash('sha256');
