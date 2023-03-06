@@ -48,19 +48,25 @@ export class Posts {
   // * Relation * /
 
   // *  Posts | M : 1 | Users
-  @ManyToOne(() => Users, (users) => users.Posts, {})
+  @ManyToOne(() => Users, (users) => users.Posts, { onDelete: 'CASCADE' })
   @JoinColumn([{ name: 'UserId', referencedColumnName: 'id' }])
   User: Users;
 
   // *  Posts | 1 : M | Comments
-  @OneToMany(() => Comments, (comments) => comments.Post)
+  @OneToMany(() => Comments, (comments) => comments.Post, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   Comments: Comments[];
 
   // *  Posts | 1 : M | PostLikes
-  @OneToMany(() => PostLikes, (postLikes) => postLikes.Post)
+  @OneToMany(() => PostLikes, (postLikes) => postLikes.Post, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   PostLikes: PostLikes[];
 
   // *  Posts | 1 : M | PostFiles
-  @OneToMany(() => PostFiles, (postFiles) => postFiles.Post)
+  @OneToMany(() => PostFiles, (postFiles) => postFiles.Post, { cascade: true })
   PostFiles: PostFiles[];
 }

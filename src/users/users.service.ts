@@ -113,4 +113,13 @@ export class UsersService {
       dogsCount: userData['dogsCount'],
     };
   }
+
+  async leave(userId: number) {
+    const leaveUser = await this.usersRepository.delete(userId);
+
+    if (leaveUser.affected === 0)
+      throw new BadRequestException('존재하지 않는 유저입니다.');
+
+    return '탈퇴가 완료되었습니다.';
+  }
 }

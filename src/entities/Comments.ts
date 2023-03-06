@@ -47,12 +47,12 @@ export class Comments {
   CommentLikes: CommentLikes[];
 
   // *  PostLikes | M : 1 | Users
-  @ManyToOne(() => Users, (users) => users.Comments, {})
+  @ManyToOne(() => Users, (users) => users.Comments, { onDelete: 'CASCADE' })
   @JoinColumn([{ name: 'UserId', referencedColumnName: 'id' }])
   User: Users;
 
   // *  PostLikes | M : 1 | Posts
-  @ManyToOne(() => Posts, (posts) => posts.Comments, {})
+  @ManyToOne(() => Posts, (posts) => posts.Comments, { onDelete: 'CASCADE' })
   @JoinColumn([{ name: 'PostId', referencedColumnName: 'id' }])
   Post: Posts;
 }

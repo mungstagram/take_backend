@@ -35,12 +35,12 @@ export class PostLikes {
   // * Relation * /
 
   // *  PostLikes | M : 1 | Users
-  @ManyToOne(() => Users, (users) => users.PostLikes, {})
+  @ManyToOne(() => Users, (users) => users.PostLikes, { onDelete: 'CASCADE' })
   @JoinColumn([{ name: 'UserId', referencedColumnName: 'id' }])
   User: Users;
 
   // *  PostLikes | M : 1 | Posts
-  @ManyToOne(() => Posts, (posts) => posts.PostLikes, {})
+  @ManyToOne(() => Posts, (posts) => posts.PostLikes, { onDelete: 'CASCADE' })
   @JoinColumn([{ name: 'PostId', referencedColumnName: 'id' }])
   Post: Posts;
 }
