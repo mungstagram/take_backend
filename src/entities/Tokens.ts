@@ -35,7 +35,7 @@ export class Tokens {
   // * Relation * /
 
   // *  Tokens | M : 1 | Users
-  @ManyToOne(() => Users, (users) => users.Tokens, {})
+  @ManyToOne(() => Users, (users) => users.Tokens, { onDelete: 'CASCADE' })
   @JoinColumn([{ name: 'UserId', referencedColumnName: 'id' }])
   User: Users;
 }

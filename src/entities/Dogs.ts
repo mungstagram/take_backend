@@ -58,7 +58,7 @@ export class Dogs {
   // * Relation * /
 
   // *  Dogs | M : 1 | Users
-  @ManyToOne(() => Users, (users) => users.Dogs, {})
+  @ManyToOne(() => Users, (users) => users.Dogs, { onDelete: 'CASCADE' })
   @JoinColumn([{ name: 'UserId', referencedColumnName: 'id' }])
   User: Users;
 

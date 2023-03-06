@@ -9,6 +9,7 @@ import {
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
+  Unique,
   UpdateDateColumn,
 } from 'typeorm';
 import { Comments } from './Comments';
@@ -24,6 +25,7 @@ export class Users {
   @PrimaryGeneratedColumn('increment')
   id: number;
 
+  @Unique(['email'])
   @Column({ type: 'text' })
   email: string;
 
@@ -63,23 +65,38 @@ export class Users {
   File: Files[];
 
   // *  Users | 1 : M | Posts
-  @OneToMany(() => Posts, (posts) => posts.User)
+  @OneToMany(() => Posts, (posts) => posts.User, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   Posts: Posts[];
 
   // *  Users | 1 : M | Comments
-  @OneToMany(() => Comments, (comments) => comments.User)
+  @OneToMany(() => Comments, (comments) => comments.User, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   Comments: Comments[];
 
   // *  Users | 1 : M | Dogs
-  @OneToMany(() => Dogs, (dogs) => dogs.User)
+  @OneToMany(() => Dogs, (dogs) => dogs.User, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   Dogs: Dogs[];
 
   // *  Users | 1 : M | Tokens
-  @OneToMany(() => Tokens, (tokens) => tokens.User)
+  @OneToMany(() => Tokens, (tokens) => tokens.User, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   Tokens: Tokens[];
 
   // *  Users | 1 : M | PostsLikes
-  @OneToMany(() => PostLikes, (postLikes) => postLikes.User)
+  @OneToMany(() => PostLikes, (postLikes) => postLikes.User, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   PostLikes: PostLikes[];
 
   // *  Users | 1 : M | CommentsLikes
@@ -87,6 +104,9 @@ export class Users {
   CommentLikes: CommentLikes[];
 
   // *  Users | 1 : M | CommentsLikes
-  @OneToMany(() => Todos, (todos) => todos.User)
+  @OneToMany(() => Todos, (todos) => todos.User, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   Todos: Todos[];
 }
