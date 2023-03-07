@@ -12,6 +12,7 @@ import {
   Get,
   UseGuards,
   Param,
+  Delete,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -64,5 +65,14 @@ export class UsersController {
   ) {
     const userId = payload.sub;
     return await this.usersService.loadUserData(nickname, userId);
+  }
+
+  @ApiOperation({ summary: '회원 탈퇴 API' })
+  @ApiBearerAuth('Authorization')
+  @UseGuards(JwtAuthGuard)
+  @Delete()
+  async leave(@GetPayload() payload: JwtPayload) {
+    const userId = payload.sub;
+    return await this.usersService.leave(userId);
   }
 }

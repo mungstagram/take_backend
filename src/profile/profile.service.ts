@@ -105,7 +105,7 @@ export class ProfileService {
       {
         user: {
           nickname: userData.nickname,
-          contentUrl: userData.File['contentUrl'],
+          contentUrl: userData.File ? userData.File['contentUrl'] : '',
         },
       },
       { dogs: allDogsData },
@@ -170,7 +170,7 @@ export class ProfileService {
       {
         user: {
           nickname: userData.nickname,
-          contentUrl: userData.File['contentUrl'],
+          contentUrl: userData.File ? userData.File['contentUrl'] : '',
           introduce: userData.introduce,
           dogsCount: allDogs.length,
         },
