@@ -20,7 +20,7 @@ export class AWSService {
       region: process.env.AWS_S3_REGION,
     });
 
-    if (files.length === 0) {
+    if (!files[0]) {
       throw new BadRequestException('업로드할 이미지가 없습니다.');
     }
 
@@ -39,10 +39,10 @@ export class AWSService {
         }
 
         const key = `${category}/${Date.now()}_${path.basename(
-          file.originalname,
+          Buffer.from(file.originalname, 'latin1').toString('utf8'),
         )}`.replace(/ /g, '');
 
-        const content_url = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.amazonaws.com/${key}`;
+        const content_url = `https://dpvqqhfbpe28l.cloudfront.net/${key}`;
 
         await awsS3
           .putObject({

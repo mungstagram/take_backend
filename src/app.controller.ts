@@ -9,10 +9,8 @@ import { ApiBearerAuth } from '@nestjs/swagger';
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
-  @ApiBearerAuth('Authorization')
-  @UseGuards(JwtAuthGuard)
   @Get()
-  getHello(@GetPayload() payload: JwtPayload) {
-    return payload;
+  getHello() {
+    return this.appService.getHello();
   }
 }
