@@ -196,6 +196,7 @@ export class ProfileService {
       .createQueryBuilder('u')
       .select(['u.id', 'u.nickname', 'u.introduce', 'uf.contentUrl'])
       .leftJoin('u.File', 'uf')
+      .loadRelationCountAndMap('u.dogsCount', 'u.Dogs')
       .where('u.nickname = :nickname', { nickname })
       .getOne();
 
@@ -219,7 +220,12 @@ export class ProfileService {
     const category = 'user';
     const newProfileImage = files[0]
       ? await this.awsService.fileUploads(files, category)
-      : [{ id: userData.FileId, contentUrl: userData.File['contentUrl'] }];
+      : [
+          {
+            id: userData.FileId,
+            contentUrl: userData.File ? userData.File['contentUrl'] : '',
+          },
+        ];
 
     //유저 정보 업데이트
     await this.usersRepository
@@ -237,6 +243,7 @@ export class ProfileService {
       nickname: data.changeNickname,
       introduce: data.introduce,
       contentUrl: newProfileImage[0].contentUrl,
+      dogsCount: userData['dogsCount'],
     };
   }
 
