@@ -144,8 +144,8 @@ export class ProfileService {
       ])
       .leftJoin('d.File', 'df')
       .where('d.UserId = :userId', { userId: userData.id })
-      .orderBy('d.representative', 'ASC')
-      .addOrderBy('d.createdAt', 'ASC')
+      .orderBy('d.representative', 'DESC')
+      .addOrderBy('d.birthday', 'ASC')
       .getMany();
 
     const allDogsData = allDogs.map((dog) => {
@@ -161,14 +161,6 @@ export class ProfileService {
         representative: dog.representative,
       };
     });
-
-    allDogsData.sort((a, b) =>
-      a.representative === b.representative
-        ? 0
-        : a
-        ? -1
-        : 1 || a.birthday.getTime() - b.birthday.getTime(),
-    );
 
     const data = [
       {
@@ -320,15 +312,41 @@ export class ProfileService {
       .where('id= :id', { id: id })
       .execute();
 
+    const allDogs = await this.dogsRepository
+      .createQueryBuilder('d')
+      .select([
+        'd.id',
+        'd.name',
+        'd.species',
+        'd.weight',
+        'd.representative',
+        'd.birthday',
+        'd.bringDate',
+        'd.introduce',
+        'df.contentUrl',
+      ])
+      .leftJoin('d.File', 'df')
+      .where('d.UserId = :userId', { userId })
+      .orderBy('d.representative', 'DESC')
+      .addOrderBy('d.birthday', 'ASC')
+      .getMany();
+
+    const allDogsData = allDogs.map((dog) => {
+      return {
+        id: dog.id,
+        name: dog.name,
+        contentUrl: dog.File['contentUrl'],
+        introduce: dog.introduce,
+        species: dog.species,
+        weight: dog.weight,
+        birthday: dog.birthday,
+        bringDate: dog.bringDate,
+        representative: dog.representative,
+      };
+    });
+
     return {
-      name: data.name,
-      introduce: data.introduce,
-      representative: data.representative,
-      species: data.species,
-      weight: data.weight,
-      birthday: data.birthday,
-      bringDate: data.bringDate,
-      contentUrl: newDogImage[0].contentUrl,
+      dogs: allDogsData,
     };
   }
 }

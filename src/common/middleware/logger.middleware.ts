@@ -13,9 +13,30 @@ export class LoggerMiddleware implements NestMiddleware {
       const { statusCode } = response;
       const contentLength = response.get('content-length');
 
-      this.logger.log(
-        `${method} ${originalUrl} ${statusCode} ${contentLength} - ${userAgent} ${ip}`,
-      );
+      const loggerColor =
+        200 <= statusCode && statusCode < 300
+          ? 200
+          : 400 <= statusCode && statusCode < 500
+          ? 400
+          : 500;
+
+      switch (loggerColor) {
+        case 200:
+          this.logger.log(
+            `${method} ${originalUrl} ${statusCode} ${contentLength} - ${userAgent} ${ip}`,
+          );
+          break;
+        case 400:
+          this.logger.error(
+            `${method} ${originalUrl} ${statusCode} ${contentLength} - ${userAgent} ${ip}`,
+          );
+          break;
+        case 500:
+          this.logger.warn(
+            `${method} ${originalUrl} ${statusCode} ${contentLength} - ${userAgent} ${ip}`,
+          );
+          break;
+      }
     });
 
     next();
