@@ -55,75 +55,85 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   async handleConnection(@ConnectedSocket() socket: Socket) {
-    const token = socket.handshake.headers.authorization.split(' ')[1];
-    const userData: JwtPayload = await this.tokenValidate(token);
+    try {
+      const token = socket.handshake.headers.authorization.split(' ')[1];
+      const userData: JwtPayload = await this.tokenValidate(token);
 
-    Logger.log(socket.nsp.name, 'Connected');
+      Logger.log(socket.nsp.name, 'Connected');
 
-    if (!this.users.length) {
-      const chatRoomUsers = await this.chatRoomsRepository.findOne({
-        where: {
-          roomId: socket.nsp.name.substring(4, socket.nsp.name.length),
-        },
+      if (!this.users.length) {
+        const chatRoomUsers = await this.chatRoomsRepository.findOne({
+          where: {
+            roomId: socket.nsp.name.substring(4, socket.nsp.name.length),
+          },
+        });
+
+        if (!chatRoomUsers) throw new WebSocketExceptionFilter();
+
+        const usersNickname = await this.usersRepository
+          .createQueryBuilder('u')
+          .select(['u.id', 'u.nickname'])
+          .where('u.id = :user0', { user0: chatRoomUsers.users[0].id })
+          .orWhere('u.id = :user1', { user1: chatRoomUsers.users[1].id })
+          .getMany();
+
+        this.users.push(usersNickname[0]);
+        this.users.push(usersNickname[1]);
+      }
+
+      const chatRoom = await this.chatRoomsRepository.findOne({
+        where: { roomId: socket.nsp.name.substring(4, socket.nsp.name.length) },
       });
 
-      if (!chatRoomUsers) throw new WebSocketExceptionFilter();
+      const myUser = { id: userData.sub, exitedAt: null };
+      const otherUser =
+        chatRoom.users[0].id === myUser.id
+          ? { id: chatRoom.users[1].id, exitedAt: chatRoom.users[1].exitedAt }
+          : { id: chatRoom.users[0].id, exitedAt: chatRoom.users[0].exitedAt };
 
-      const usersNickname = await this.usersRepository
-        .createQueryBuilder('u')
-        .select(['u.id', 'u.nickname'])
-        .where('u.id = :user0', { user0: chatRoomUsers.users[0].id })
-        .orWhere('u.id = :user1', { user1: chatRoomUsers.users[1].id })
-        .getMany();
+      console.log(chatRoom, otherUser);
 
-      this.users.push(usersNickname[0]);
-      this.users.push(usersNickname[1]);
+      const updateUsers =
+        myUser.id < otherUser.id ? [myUser, otherUser] : [otherUser, myUser];
+
+      await this.chatRoomsRepository.update(chatRoom.id, {
+        users: updateUsers,
+      });
+      const getMessages = await this.dmsService.joinChatRoom(
+        socket.nsp.name.substring(4, socket.nsp.name.length),
+      );
+
+      socket.emit('getMessages', getMessages);
+    } catch (error) {
+      Logger.error(error.message, 'DM Connect');
     }
-
-    const chatRoom = await this.chatRoomsRepository.findOne({
-      where: { roomId: socket.nsp.name.substring(4, socket.nsp.name.length) },
-    });
-
-    const myUser = { id: userData.sub, exitedAt: null };
-    const otherUser =
-      chatRoom.users[0].id === myUser.id
-        ? { id: chatRoom.users[1].id, exitedAt: chatRoom.users[1].exitedAt }
-        : { id: chatRoom.users[0].id, exitedAt: chatRoom.users[0].exitedAt };
-
-    console.log(chatRoom, otherUser);
-
-    const updateUsers =
-      myUser.id < otherUser.id ? [myUser, otherUser] : [otherUser, myUser];
-
-    await this.chatRoomsRepository.update(chatRoom.id, {
-      users: updateUsers,
-    });
-    const getMessages = await this.dmsService.joinChatRoom(
-      socket.nsp.name.substring(4, socket.nsp.name.length),
-    );
-
-    socket.emit('getMessages', getMessages);
   }
 
   async handleDisconnect(@ConnectedSocket() socket: Socket) {
-    const token = socket.handshake.headers.authorization.split(' ')[1];
-    const userData: JwtPayload = await this.tokenValidate(token);
+    try {
+      const token = socket.handshake.headers.authorization.split(' ')[1];
+      const userData: JwtPayload = await this.tokenValidate(token);
 
-    const chatRoom = await this.chatRoomsRepository.findOne({
-      where: { roomId: socket.nsp.name.substring(4, socket.nsp.name.length) },
-    });
+      const chatRoom = await this.chatRoomsRepository.findOne({
+        where: { roomId: socket.nsp.name.substring(4, socket.nsp.name.length) },
+      });
 
-    const myUser = { id: userData.sub, exitedAt: new Date() };
-    const otherUser =
-      chatRoom.users[0].id === myUser.id
-        ? { id: chatRoom.users[1].id, exitedAt: chatRoom.users[1].exitedAt }
-        : { id: chatRoom.users[0].id, exitedAt: chatRoom.users[0].exitedAt };
+      const myUser = { id: userData.sub, exitedAt: new Date() };
+      const otherUser =
+        chatRoom.users[0].id === myUser.id
+          ? { id: chatRoom.users[1].id, exitedAt: chatRoom.users[1].exitedAt }
+          : { id: chatRoom.users[0].id, exitedAt: chatRoom.users[0].exitedAt };
 
-    const updateUsers =
-      myUser.id < otherUser.id ? [myUser, otherUser] : [otherUser, myUser];
+      const updateUsers =
+        myUser.id < otherUser.id ? [myUser, otherUser] : [otherUser, myUser];
 
-    await this.chatRoomsRepository.update(chatRoom.id, { users: updateUsers });
-    this.users = [];
+      await this.chatRoomsRepository.update(chatRoom.id, {
+        users: updateUsers,
+      });
+      this.users = [];
+    } catch (error) {
+      Logger.error(error.message, 'DM DisConnect');
+    }
   }
 
   @SubscribeMessage('dm')
