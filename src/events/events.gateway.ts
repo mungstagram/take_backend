@@ -59,7 +59,10 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const token = socket.handshake.headers.authorization.split(' ')[1];
       const userData: JwtPayload = await this.tokenValidate(token);
 
-      Logger.log(socket.nsp.name, 'Connected');
+      Logger.debug(
+        { nspName: socket.nsp.name, ip: socket.handshake.address },
+        'Connected',
+      );
 
       if (!this.users.length) {
         const chatRoomUsers = await this.chatRoomsRepository.findOne({
@@ -166,8 +169,17 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
         RoomId: socket.nsp.name.substring(4, socket.nsp.name.length),
         createdAt: now,
       });
-      console.log(sender, receiver);
 
+      Logger.debug(
+        {
+          nspName: socket.nsp.name,
+          ip: socket.handshake.address,
+          sender: sender.id,
+          receiver: receiver.id,
+          message: data.message,
+        },
+        'Sent',
+      );
       socket.emit('newDM', {
         ...data,
         sender: sender,
