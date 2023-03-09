@@ -22,17 +22,17 @@ export class LoggerMiddleware implements NestMiddleware {
 
       switch (loggerColor) {
         case 200:
-          this.logger.log(
+          this.logger.verbose(
             `${method} ${originalUrl} ${statusCode} ${contentLength} - ${userAgent} ${ip}`,
           );
           break;
         case 400:
-          this.logger.error(
+          this.logger.warn(
             `${method} ${originalUrl} ${statusCode} ${contentLength} - ${userAgent} ${ip}`,
           );
           break;
         case 500:
-          this.logger.warn(
+          this.logger.error(
             `${method} ${originalUrl} ${statusCode} ${contentLength} - ${userAgent} ${ip}`,
           );
           break;

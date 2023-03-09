@@ -1,7 +1,10 @@
 import { Files } from 'src/entities/Files';
 import { AWSService } from './../helper/fileupload.helper';
-import { DogCreateRequestDto } from './dtos/dog.request.dto';
-import { Injectable } from '@nestjs/common';
+import {
+  DogCreateRequestDto,
+  DogDeleteReqeustDto,
+} from './dtos/dog.request.dto';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Dogs } from '../entities/Dogs';
 import { Repository } from 'typeorm';
@@ -53,5 +56,19 @@ export class DogsService {
       contentUrl: contentUrl.contentUrl,
       representative: representative,
     };
+  }
+
+  async deleteDog(dogDeleteReqeustDto: DogDeleteReqeustDto) {
+    const deleteDog = await this.dogsRepository.update(
+      {
+        ...dogDeleteReqeustDto,
+      },
+      { deletedAt: new Date() },
+    );
+
+    if (deleteDog.affected === 0)
+      throw new BadRequestException('존재하지 않는 강아지 입니다.');
+
+    return 'deleted';
   }
 }

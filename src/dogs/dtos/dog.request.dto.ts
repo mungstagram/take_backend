@@ -1,4 +1,4 @@
-import { ApiProperty, OmitType } from '@nestjs/swagger';
+import { ApiProperty, OmitType, PickType } from '@nestjs/swagger';
 import { IsNotEmpty } from 'class-validator';
 
 export class DogRequestDto {
@@ -33,3 +33,9 @@ export class DogCreateRequestDto extends OmitType(DogRequestDto, [
 ] as const) {}
 
 export class DogUpdateReqeustDto extends DogCreateRequestDto {}
+
+export class DogDeleteReqeustDto extends PickType(DogRequestDto, [
+  'id',
+] as const) {
+  public UserId: number;
+}

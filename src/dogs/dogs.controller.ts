@@ -1,6 +1,9 @@
-import { UploadedFiles } from '@nestjs/common/decorators';
+import { Delete, UploadedFiles } from '@nestjs/common/decorators';
 import { FilesInterceptor } from '@nestjs/platform-express/multer';
-import { DogCreateRequestDto } from './dtos/dog.request.dto';
+import {
+  DogCreateRequestDto,
+  DogDeleteReqeustDto,
+} from './dtos/dog.request.dto';
 import { JwtPayload } from './../auth/jwt/jwt.payload.dto';
 import { GetPayload } from './../common/dacorators/get.payload.decorator';
 import { JwtAuthGuard } from 'src/auth/jwt/jwt.guard';
@@ -18,6 +21,7 @@ import {
   ApiBody,
   ApiConsumes,
   ApiCreatedResponse,
+  ApiNoContentResponse,
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
@@ -84,5 +88,19 @@ export class DogsController {
   ) {
     dogCreateRequestDto.UserId = payload.sub;
     return await this.dogsService.createDog(dogCreateRequestDto, files);
+  }
+
+  @ApiOperation({ summary: '강아지 프로필 삭제 API' })
+  @ApiNoContentResponse({ description: '정상적으로 작성됨' })
+  @ApiBearerAuth('Authorization')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(204)
+  @Delete()
+  async deleteDog(
+    @GetPayload() payload: JwtPayload,
+    @Body() dogDeleteReqeustDto: DogDeleteReqeustDto,
+  ) {
+    dogDeleteReqeustDto.UserId = payload.sub;
+    return await this.dogsService.deleteDog(dogDeleteReqeustDto);
   }
 }
