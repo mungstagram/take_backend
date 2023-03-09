@@ -72,7 +72,7 @@ export class CommentsService {
 
     return {
       id: comment.id,
-      comment: comment.comment,
+      comment: commentUpdateRequestDto.comment,
       nickname: comment.User.nickname,
       userId: comment.UserId,
       profileUrl: comment.User.File ? comment.User.File['contentUrl'] : '',

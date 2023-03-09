@@ -57,6 +57,8 @@ export class ProfileService {
       ])
       .leftJoin('d.File', 'df')
       .where('d.UserId = :userId', { userId: userId })
+      .orderBy('d.representative', 'ASC')
+      .addOrderBy('d.createdAt', 'ASC')
       .getMany();
 
     if (!userData) {
@@ -142,6 +144,8 @@ export class ProfileService {
       ])
       .leftJoin('d.File', 'df')
       .where('d.UserId = :userId', { userId: userData.id })
+      .orderBy('d.representative', 'ASC')
+      .addOrderBy('d.createdAt', 'ASC')
       .getMany();
 
     const allDogsData = allDogs.map((dog) => {
