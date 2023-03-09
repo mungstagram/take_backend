@@ -297,7 +297,7 @@ export class ProfileService {
       : [{ id: dogData.id, contentUrl: dogData.File['contentUrl'] }];
 
     //강아지 정보 업데이트
-    this.dogsRepository
+    await this.dogsRepository
       .createQueryBuilder()
       .update(Dogs)
       .set({
