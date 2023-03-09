@@ -107,7 +107,7 @@ export class ProfileService {
       {
         user: {
           nickname: userData.nickname,
-          contentUrl: userData.File['contentUrl'],
+          contentUrl: userData.File ? userData.File['contentUrl'] : '',
         },
       },
       { dogs: allDogsData },
@@ -144,8 +144,8 @@ export class ProfileService {
       ])
       .leftJoin('d.File', 'df')
       .where('d.UserId = :userId', { userId: userData.id })
-      .orderBy('d.representative', 'ASC')
-      .addOrderBy('d.createdAt', 'ASC')
+      .orderBy('d.representative', 'DESC')
+      .addOrderBy('d.birthday', 'ASC')
       .getMany();
 
     const allDogsData = allDogs.map((dog) => {
@@ -162,19 +162,11 @@ export class ProfileService {
       };
     });
 
-    allDogsData.sort((a, b) =>
-      a.representative === b.representative
-        ? 0
-        : a
-        ? -1
-        : 1 || a.birthday.getTime() - b.birthday.getTime(),
-    );
-
     const data = [
       {
         user: {
           nickname: userData.nickname,
-          contentUrl: userData.File['contentUrl'],
+          contentUrl: userData.File ? userData.File['contentUrl'] : '',
           introduce: userData.introduce,
           dogsCount: allDogs.length,
         },
@@ -200,6 +192,7 @@ export class ProfileService {
       .createQueryBuilder('u')
       .select(['u.id', 'u.nickname', 'u.introduce', 'uf.contentUrl'])
       .leftJoin('u.File', 'uf')
+      .loadRelationCountAndMap('u.dogsCount', 'u.Dogs')
       .where('u.nickname = :nickname', { nickname })
       .getOne();
 
@@ -223,7 +216,12 @@ export class ProfileService {
     const category = 'user';
     const newProfileImage = files[0]
       ? await this.awsService.fileUploads(files, category)
-      : [{ id: userData.FileId, contentUrl: userData.File['contentUrl'] }];
+      : [
+          {
+            id: userData.FileId,
+            contentUrl: userData.File ? userData.File['contentUrl'] : '',
+          },
+        ];
 
     //유저 정보 업데이트
     await this.usersRepository
@@ -241,6 +239,7 @@ export class ProfileService {
       nickname: data.changeNickname,
       introduce: data.introduce,
       contentUrl: newProfileImage[0].contentUrl,
+      dogsCount: userData['dogsCount'],
     };
   }
 
@@ -313,15 +312,41 @@ export class ProfileService {
       .where('id= :id', { id: id })
       .execute();
 
+    const allDogs = await this.dogsRepository
+      .createQueryBuilder('d')
+      .select([
+        'd.id',
+        'd.name',
+        'd.species',
+        'd.weight',
+        'd.representative',
+        'd.birthday',
+        'd.bringDate',
+        'd.introduce',
+        'df.contentUrl',
+      ])
+      .leftJoin('d.File', 'df')
+      .where('d.UserId = :userId', { userId })
+      .orderBy('d.representative', 'DESC')
+      .addOrderBy('d.birthday', 'ASC')
+      .getMany();
+
+    const allDogsData = allDogs.map((dog) => {
+      return {
+        id: dog.id,
+        name: dog.name,
+        contentUrl: dog.File['contentUrl'],
+        introduce: dog.introduce,
+        species: dog.species,
+        weight: dog.weight,
+        birthday: dog.birthday,
+        bringDate: dog.bringDate,
+        representative: dog.representative,
+      };
+    });
+
     return {
-      name: data.name,
-      introduce: data.introduce,
-      representative: data.representative,
-      species: data.species,
-      weight: data.weight,
-      birthday: data.birthday,
-      bringDate: data.bringDate,
-      contentUrl: newDogImage[0].contentUrl,
+      dogs: allDogsData,
     };
   }
 }

@@ -53,7 +53,8 @@ export class DogsService {
       weight: dogCreateRequestDto.weight,
       birthday: dogCreateRequestDto.birthday,
       bringDate: dogCreateRequestDto.bringDate,
-      contentUrl: contentUrl,
+      contentUrl: contentUrl.contentUrl,
+      representative: representative,
     };
   }
 

@@ -10,8 +10,7 @@ export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Get()
-  @HttpCode(200)
   getHello() {
-    return '헬스체크';
+    return this.appService.getHello();
   }
 }
