@@ -108,7 +108,7 @@ export class DmsService {
             ? { id: users[0]['id'], nickname: users[0]['nickname'] }
             : { id: users[1]['id'], nickname: users[1]['nickname'] },
         contentUrl: v.contentUrl,
-        createdAt: v.createdAt,
+        createdAt: new Date(v.createdAt.getTime() + 9 * 3600 * 1000),
       };
     });
 

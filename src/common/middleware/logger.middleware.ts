@@ -16,12 +16,15 @@ export class LoggerMiddleware implements NestMiddleware {
       const loggerColor =
         200 <= statusCode && statusCode < 300
           ? 200
+          : 300 <= statusCode && statusCode < 400
+          ? 300
           : 400 <= statusCode && statusCode < 500
           ? 400
           : 500;
 
       switch (loggerColor) {
         case 200:
+        case 300:
           this.logger.verbose(
             `${method} ${originalUrl} ${statusCode} ${contentLength} - ${userAgent} ${ip}`,
           );

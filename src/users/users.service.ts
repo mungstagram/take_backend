@@ -84,7 +84,7 @@ export class UsersService {
     });
 
     if (user)
-      throw new BadRequestException(
+      throw new ConflictException(
         `이미 존재하는 ${Object.keys(isCorrect)[0]} 입니다.`,
       );
 
