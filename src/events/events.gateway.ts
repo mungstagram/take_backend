@@ -179,8 +179,8 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
         {
           nspName: socket.nsp.name,
           ip: socket.handshake.address,
-          sender: sender.id,
-          receiver: receiver.id,
+          sender: sender,
+          receiver: receiver,
           message: data.message,
         },
         'Sent',
