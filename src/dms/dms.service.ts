@@ -119,6 +119,47 @@ export class DmsService {
     const userChatRoomList = await this.chatRoomsRepository.find({
       where: { users: { $elemMatch: { id: userId } } },
     });
+
+    const otherUserIds = userChatRoomList.map((v) => {
+      if (v.users[0].id !== userId) return v.users[0].id;
+      return v.users[1].id;
+    });
+
+    const getMyNickname = await this.usersRepository.findOne({
+      where: { id: userId },
+      select: ['nickname'],
+    });
+
+    const getOtherUserNicknames = await this.usersRepository
+      .createQueryBuilder('u')
+      .select(['u.id', 'u.nickname'])
+      .where('u.id IN (:...ids)', { ids: otherUserIds })
+      .getMany();
+
+    const getUserChatRoomList = userChatRoomList.map((room) => {
+      if (room.users[0].id === userId) {
+        room.users[0].nickname = getMyNickname.nickname;
+
+        for (const i of getOtherUserNicknames) {
+          if (room.users[1].id === i.id) {
+            room.users[1].nickname = i.nickname;
+          }
+        }
+
+        return room;
+      }
+
+      room.users[1].nickname = getMyNickname.nickname;
+
+      for (const i of getOtherUserNicknames) {
+        if (room.users[0].id === i.id) {
+          room.users[0].nickname = i.nickname;
+        }
+      }
+
+      return room;
+    });
+
     return userChatRoomList;
   }
 
