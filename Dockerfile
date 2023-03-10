@@ -1,5 +1,5 @@
 # Step 1 : Build
-FROM node:16 AS builder
+FROM node:18 AS builder
 # Work Directory 설정
 WORKDIR /app
 # 패키지 설치를 위한 Package.json 복사
@@ -10,10 +10,12 @@ RUN npm install
 COPY ["tsconfig.build.json" , "tsconfig.json", "./"]
 COPY ["nest-cli.json" , "./"]
 COPY ["src/", "./src/"]
+COPY ["dataSource.ts" , "./"]
+COPY ["mongoDataSource.ts" , "./"]
 RUN npm run build
 
 # Step 2 : Run
-FROM node:16-alpine
+FROM node:18-alpine
 # Work Directory 설정
 WORKDIR /app
 # Stemp 1의 builder에서 build된 프로젝트를 복사
