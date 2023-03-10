@@ -116,7 +116,6 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
       await this.chatRoomsRepository.update(chatRoom.id, {
         users: updateUsers,
       });
-      this.users = [];
     } catch (error) {
       Logger.error(error.message, 'DM DisConnect');
     }
