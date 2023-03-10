@@ -64,25 +64,10 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
         'Connected',
       );
 
-      if (!this.users.length) {
-        const chatRoomUsers = await this.chatRoomsRepository.findOne({
-          where: {
-            roomId: socket.nsp.name.substring(4, socket.nsp.name.length),
-          },
-        });
+      this.users = await this.dmsService.getChatRoomList(userData.sub);
 
-        if (!chatRoomUsers) throw new WebSocketExceptionFilter();
-
-        const usersNickname = await this.usersRepository
-          .createQueryBuilder('u')
-          .select(['u.id', 'u.nickname'])
-          .where('u.id = :user0', { user0: chatRoomUsers.users[0].id })
-          .orWhere('u.id = :user1', { user1: chatRoomUsers.users[1].id })
-          .getMany();
-
-        this.users.push(usersNickname[0]);
-        this.users.push(usersNickname[1]);
-      }
+      if (!this.users.length)
+        throw new BadRequestException('유효하지 않은 채팅방입니다.');
 
       const chatRoom = await this.chatRoomsRepository.findOne({
         where: { roomId: socket.nsp.name.substring(4, socket.nsp.name.length) },
@@ -93,8 +78,6 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
         chatRoom.users[0].id === myUser.id
           ? { id: chatRoom.users[1].id, exitedAt: chatRoom.users[1].exitedAt }
           : { id: chatRoom.users[0].id, exitedAt: chatRoom.users[0].exitedAt };
-
-      console.log(chatRoom, otherUser);
 
       const updateUsers =
         myUser.id < otherUser.id ? [myUser, otherUser] : [otherUser, myUser];
@@ -149,16 +132,38 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const userData: JwtPayload = await this.tokenValidate(token);
       const userId = userData.sub;
 
+      const chatRoom = this.users.filter((v) => {
+        if (
+          v['roomId'] === socket.nsp.name.substring(4, socket.nsp.name.length)
+        )
+          return v;
+      });
+      console.log('users', this.users);
+      console.log('a', chatRoom);
+
       const sender =
-        userId === this.users[0]['id']
-          ? { id: this.users[0]['id'], nickname: this.users[0]['nickname'] }
-          : { id: this.users[1]['id'], nickname: this.users[1]['nickname'] };
+        userId === chatRoom[0]['users'][0]['id']
+          ? {
+              id: chatRoom[0]['users'][0]['id'],
+              nickname: chatRoom[0]['users'][0]['nickname'],
+            }
+          : {
+              id: chatRoom[0]['users'][1]['id'],
+              nickname: chatRoom[0]['users'][1]['nickname'],
+            };
 
       const receiver =
-        userId !== this.users[0]['id']
-          ? { id: this.users[0]['id'], nickname: this.users[0]['nickname'] }
-          : { id: this.users[1]['id'], nickname: this.users[1]['nickname'] };
+        userId !== chatRoom[0]['users'][0]['id']
+          ? {
+              id: chatRoom[0]['users'][0]['id'],
+              nickname: chatRoom[0]['users'][0]['nickname'],
+            }
+          : {
+              id: chatRoom[0]['users'][1]['id'],
+              nickname: chatRoom[0]['users'][1]['nickname'],
+            };
 
+      console.log('b', sender, receiver);
       const now = new Date();
 
       await this.chattingsRepository.insert({
@@ -184,17 +189,17 @@ export class DMGateway implements OnGatewayConnection, OnGatewayDisconnect {
         ...data,
         sender: sender,
         receiver: receiver,
-        createdAt: now,
+        createdAt: new Date(now.getTime() + 9 * 3600 * 1000),
       });
 
       socket.broadcast.emit('newDM', {
         ...data,
         sender: sender,
         receiver: receiver,
-        createdAt: now,
+        createdAt: new Date(now.getTime() + 9 * 3600 * 1000),
       });
     } catch (error) {
-      Logger.error(error.message, 'DM');
+      Logger.error(error, 'DM');
     }
   }
 }
