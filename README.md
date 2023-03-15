@@ -86,13 +86,50 @@
 
 ## 🔆 트러블슈팅
 
-‼️ **문제 상황**  : 이전의 JPA의 like절이나 contains절을 사용할 때의 검색 기능은 ex) 강남 자전거, 속초 헤어드라이기 이런식으로 지역과 제목 순으로 띄어쓰기를 포함해서만 검색이 가능한 한계가 있었고, jmeter로 측정한 속도도 향상 시키고자함
+![image](https://user-images.githubusercontent.com/114650436/225261986-2d11fa2f-e91b-4e3c-857d-90b5e1bbaa88.png)
 
-1️⃣ **해결방안 1안** : Hibernate Search
 
-2️⃣ **해결방안 2안** : Elasticsearch
+**문제 상황**  : imageGetter라는 컴포넌트를 사진 게시판과 동영상 게시판에서 사용하는데, 동일한 이미지를 랜더링
 
-✅ **결과** :  JMeter를 통해 1000명의 User가 동시에 이용했을 때의 평균 속도 17.4% 가량 감소
+![image](https://user-images.githubusercontent.com/114650436/225262101-08a6691f-24fa-46d4-9963-a615f7036109.png)
+
+문제 원인 : imageGetter 컴포넌트가 사진게시판에서 Mount된 이후, 동영상게시판에서는 새로 Mount 되지 않음 React Navigation에서는 페이지 이동 시 Unmount되는 게 아닌 Stack이 쌓임
+
+![image](https://user-images.githubusercontent.com/114650436/225262154-7ee30932-9209-4e94-92cd-19baa4c81a86.png)
+
+✅ 해결 방법 :  useIsFocused Hook을 사용페이지에 포커스가 올 때 업데이트가 되도록, useEffect의 의존성 배열에 isFocused를 추가
+
+**문제 상황**  : RNMIP(react native multiple image picker) 라이브러리를 활용해 미디어파일을 전송하는데, 서버에서 파일을 인식하지 못하는(undefined) 문제가 발생
+
+추정 원인 : 서버에서는 이미지 데이터를 buffer형식으로 받는데, 프론트 쪽에서 별도의 인코딩 과정이 없음
+
+![image](https://user-images.githubusercontent.com/114650436/225262195-7e66dec2-8bc4-4805-afc7-27af42796d20.png)
+
+실제 원인 : RNMIP에서 얻은 realPath 경로앞에 file://(파일 URI 스키마)를 적어야 함
+
+![image](https://user-images.githubusercontent.com/114650436/225262320-68f61350-febe-476d-b541-3585ffbdadd0.png)
+
+✅ 깨달은 점:  HTTP 통신할 때 데이터 타입을 HTTP Header에 multipart/form-data 를 명시하면 데이터가 인코딩됨
+
+**문제 상황**  : S3 서비스에서 예상보다 높은 비용 발생, 고화질의 사진/영상이 주 컨텐츠로 이루어진 서비스이기에 대량의 트래픽 발생 될 우려가 있어 대비가 필요
+
+![image](https://user-images.githubusercontent.com/114650436/225262367-5745bc0f-52db-4da7-826a-fcf4c81c2581.png)
+
+문제 원인 : Cloud Front를 이용하여 컨텐츠를 캐싱하면 과도한 트래픽을 방지 가능, 또한 S3로 직접적인 접근을 하지 않게 설정할 수 있어 보안상의 이점을 가질 수 있음.
+
+![image](https://user-images.githubusercontent.com/114650436/225262418-5a693358-4ca2-4ccc-ac47-5a9ed3f70c16.png)
+
+✅ 문제 해결 :  캐싱을 통해 3일 간 10GB의 트래픽이 감소하는 효과, S3에 불필요한 엑세스 차단
+
+![image](https://user-images.githubusercontent.com/114650436/225262468-d5552801-6f08-4eb8-bca5-f7fa5336353f.png)
+
+**문제 상황**  :  TypeORM을 이용하여 MongoDB 연결을 시도 하였으나, 의존성 에러가 발생
+
+문제 원인 : TypeORM에 PostgreSQL을 연결한 상황에서 MongoDB를 연결 시 PostgreSQL에 연결을 시도하여 발생
+
+![image](https://user-images.githubusercontent.com/114650436/225262508-1d443cd2-f665-4a7b-9b35-dbbd32df7068.png)
+
+✅ 해결 방법 :  MongoDB와 연결하는 DataSource를 만들고 TypeORMModuleOption에 name 속성을 부여하여 DB를 구분
 
 ## 👻 Pupfluencer 팀원들!
   
